@@ -6,6 +6,8 @@ import type { Tables } from "@/lib/supabase/database.types";
 const goalToDb = { loss: "lose", maintain: "maintain", gain: "gain", recomposition: "recomposition" } as const;
 export const goalFromDb: Record<string, ProfileDraft["goal"]> = { lose: "loss", maintain: "maintain", gain: "gain", recomposition: "recomposition" };
 
+// Cắt theo ký tự Unicode, không tách đôi cặp surrogate (emoji) khi vượt 300 ký tự.
+const clip = (value: string) => Array.from(value).slice(0, 300).join("");
 const text = (value: number | null | undefined) => value === null || value === undefined ? "" : String(value).replace(".", ",");
 
 export function draftFromRows(profile: Tables<"profiles"> | null, goal: Tables<"goals"> | null, weightKg: number | null): ProfileDraft | null {
@@ -41,7 +43,7 @@ export function rpcPayload(draft: ProfileDraft) {
       height_cm: parse(draft.height), age_years: parse(draft.age), sex_for_formula: draft.sex,
       body_fat_pct: draft.bodyFat.trim() ? parse(draft.bodyFat) : "", activity_level: draft.activity,
       weight_kg: parse(draft.weight),
-      frequent_foods: draft.frequent.slice(0, 300), favorite_foods: draft.favorites.slice(0, 300), allergies: draft.allergies.slice(0, 300),
+      frequent_foods: clip(draft.frequent), favorite_foods: clip(draft.favorites), allergies: clip(draft.allergies),
     },
     goal: {
       goal_type: goalToDb[draft.goal as keyof typeof goalToDb], weekly_adjustment_kcal: plan.signedWeekly,

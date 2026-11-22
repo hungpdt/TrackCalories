@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, LayoutDashboard, BookOpen, CalendarDays, Scale, Settings2, Plus, Sprout, FlaskConical } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+// Khóa localStorage của hồ sơ G1; hồ sơ nay lưu theo tài khoản nên xóa bản cũ khỏi thiết bị.
+const legacyProfileKey = "tcgm.nutrition-profile.v1";
 const links = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/history", label: "Nhật ký", icon: CalendarDays },
@@ -12,6 +14,7 @@ const links = [
 ];
 export function AppShell({ children, email }: { children: ReactNode; email: string | null }) {
   const pathname = usePathname();
+  useEffect(() => { try { localStorage.removeItem(legacyProfileKey); } catch { /* trình duyệt chặn storage */ } }, []);
   return <div className="app-shell">
     <a href="#main-content" className="skip-link">Đến nội dung chính</a>
     <aside className="sidebar">

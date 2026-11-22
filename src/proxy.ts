@@ -22,20 +22,19 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims?.sub);
   const { pathname } = request.nextUrl;
-  const isAuthPage = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname.startsWith("/auth/");
 
-  if (!signedIn && !isAuthPage) {
+  const redirectTo = (pathname: string) => {
     const target = request.nextUrl.clone();
-    target.pathname = "/login";
+    target.pathname = pathname;
     target.search = "";
-    return NextResponse.redirect(target);
-  }
-  if (signedIn && isAuthPage) {
-    const target = request.nextUrl.clone();
-    target.pathname = "/";
-    target.search = "";
-    return NextResponse.redirect(target);
-  }
+    const redirect = NextResponse.redirect(target);
+    // Giữ cookie session vừa được làm mới, nếu không trình duyệt vẫn giữ token cũ.
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    return redirect;
+  };
+  if (!signedIn && !isAuthPage) return redirectTo("/login");
+  if (signedIn && isAuthPage) return redirectTo("/");
   return response;
 }
 

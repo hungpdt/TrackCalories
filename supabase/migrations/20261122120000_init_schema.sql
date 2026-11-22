@@ -39,7 +39,12 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  perform now() at time zone new.timezone;
+  -- Chỉ nhận tên IANA dạng Vùng/Thành_phố hoặc UTC (tên Intl.DateTimeFormat hiểu);
+  -- loại viết tắt và dạng POSIX như "+07" mà Postgres vẫn chấp nhận.
+  if (position('/' in new.timezone) = 0 and new.timezone <> 'UTC')
+     or not exists (select 1 from pg_catalog.pg_timezone_names where name = new.timezone) then
+    raise exception 'invalid_timezone' using errcode = '22023';
+  end if;
   return new;
 end;
 $$;
@@ -76,7 +81,7 @@ create table public.goals (
   protein_g numeric(7, 1) not null check (protein_g >= 0 and protein_g < 5000),
   carbs_g numeric(7, 1) not null check (carbs_g >= 0 and carbs_g < 5000),
   fat_g numeric(7, 1) not null check (fat_g >= 0 and fat_g < 5000),
-  effective_from date not null,
+  effective_from date not null check (effective_from between date '2000-01-01' and date '2100-12-31'),
   created_at timestamptz not null default now(),
   unique (user_id, effective_from)
 );
@@ -119,7 +124,7 @@ create trigger foods_set_updated_at before update on public.foods
 create table public.meals (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  meal_date date not null,
+  meal_date date not null check (meal_date between date '2000-01-01' and date '2100-12-31'),
   eaten_at timestamptz not null default now(),
   meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
   note text check (char_length(note) <= 500),
@@ -162,6 +167,12 @@ create table public.meal_items (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (meal_id, position),
+  constraint meal_items_basis_consistent check (
+    (basis_type_snapshot = 'per_100g' and basis_unit_snapshot = 'g' and basis_quantity_snapshot = 100)
+    or (basis_type_snapshot = 'per_100ml' and basis_unit_snapshot = 'ml' and basis_quantity_snapshot = 100)
+    or (basis_type_snapshot = 'per_serving' and basis_unit_snapshot = 'serving')
+    or (basis_type_snapshot = 'per_package' and basis_unit_snapshot = 'package')
+  ),
   -- meal và food phải cùng owner với item.
   foreign key (user_id, meal_id) references public.meals (user_id, id) on delete cascade,
   -- Xóa food chỉ đặt food_id về null, giữ user_id và snapshot.
@@ -175,7 +186,7 @@ create trigger meal_items_set_updated_at before update on public.meal_items
 create table public.weight_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  logged_date date not null,
+  logged_date date not null check (logged_date between date '2000-01-01' and date '2100-12-31'),
   weight_kg numeric(5, 2) not null check (weight_kg > 0 and weight_kg < 1000),
   note text check (char_length(note) <= 500),
   created_at timestamptz not null default now(),
@@ -220,6 +231,9 @@ revoke all on public.profiles, public.goals, public.foods, public.meals, public.
   public.weight_logs, public.mutation_requests from anon;
 -- Bữa ăn chỉ được tạo/sửa qua RPC để giữ invariant; mutation_requests không cho client chạm tới.
 revoke insert, update on public.meals, public.meal_items from authenticated;
+-- TRUNCATE bỏ qua RLS; REFERENCES/TRIGGER không cần cho client.
+revoke truncate, references, trigger on public.profiles, public.goals, public.foods, public.meals,
+  public.meal_items, public.weight_logs from authenticated;
 revoke all on public.mutation_requests from authenticated;
 
 create policy "profiles: đọc của mình" on public.profiles for select to authenticated
