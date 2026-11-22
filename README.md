@@ -17,6 +17,7 @@ Mở `http://127.0.0.1:3000`. Không cần API key cho G1. Dừng bằng Ctrl+C.
 npm run lint
 npm run typecheck
 npm run build
+npm test
 npm start
 ```
 
@@ -28,7 +29,9 @@ Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại l�
 
 Trang chủ mở luồng thiết lập mới. Nhập số đo, vận động, mục tiêu và mức điều chỉnh theo tuần, sau đó nhập món quen và dị ứng tùy chọn. Kết quả là ước tính cho người lớn, có giải thích phép tính. Hồ sơ chỉ lưu trong trình duyệt sau khi xác nhận và có thể xóa trên trang chủ. Gợi ý ưu tiên món đã nhập, tạm ẩn khi có dị ứng.
 
-Chạy `npx playwright test` để kiểm tra luồng thiết lập trên Edge desktop và mô phỏng Pixel 7. Test khởi động server riêng cổng 3100, yêu cầu Edge đã cài.
+Trang chủ: khi đã lưu hồ sơ hiện Dashboard ngày (nhật ký minh họa) và thẻ mục tiêu bên dưới; Cài đặt hiện cùng mục tiêu đó. Mức nạp dưới 1.200 kcal chỉ được hiện cho Duy trì/Tăng, kèm lưu ý hỏi chuyên gia; thâm hụt dưới ngưỡng bị chặn. Ô số chấp nhận "74,5" hoặc "74.5", từ chối dạng hàng nghìn "1.200" và yêu cầu nhập "1200".
+
+`npm test` chạy unit test (Vitest, `tests/unit`: công thức mục tiêu, đọc số). `npm run test:e2e` chạy Playwright cho luồng thiết lập, Cài đặt và editor trên desktop và mô phỏng Pixel 7; test tự khởi động server riêng cổng 3100, nên không chạy được khi đang có một `next dev` khác trong thư mục. Máy local mặc định dùng Edge; khi biến `CI` được đặt dùng Chromium của Playwright (cần `npx playwright install chromium`); đặt `PLAYWRIGHT_CHANNEL` để chọn trình duyệt khác.
 
 Sáu trang: `/`, `/add-meal`, `/history`, `/foods`, `/weight`, `/settings`. Có điều hướng desktop/mobile, loading/error/empty/404. Thử tìm món có/không dấu, yêu thích, chọn món vào editor, thêm/xóa món trong nhật ký mẫu, đổi ngày xem, nhập/xóa cân nặng mẫu và thay mục tiêu mẫu.
 

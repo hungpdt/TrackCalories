@@ -70,3 +70,4 @@
   .mobile-settings { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; color: #47665b; border: 1px solid var(--line); background: #f0f5f2; }
   .mobile-settings[aria-current="page"] { color: white; background: var(--accent); border-color: var(--accent); }
 }
+.setup-results .help-note { margin: 4px 0 20px; padding: 10px 12px; border-radius: 10px; background: #fff7e6; border: 1px solid #f1dfb8; font-size: .875rem; }

@@ -27,9 +27,13 @@ function parseSaved(raw: string | null) {
   } catch { return null; }
 }
 
-/** Hồ sơ đã lưu (hoặc null). Trả về null khi render phía server. */
-export function useSavedProfile() {
-  return parseSaved(useSyncExternalStore(subscribe, readSaved, () => null));
+/**
+ * Hồ sơ đã lưu, null nếu chưa có, undefined khi chưa đọc được trình duyệt
+ * (render phía server và lần hydrate đầu) để UI không chớp form thiết lập.
+ */
+export function useSavedProfile(): ProfileDraft | null | undefined {
+  const raw = useSyncExternalStore<string | null | undefined>(subscribe, readSaved, () => undefined);
+  return raw === undefined ? undefined : parseSaved(raw);
 }
 
 /** Ném lỗi nếu trình duyệt không cho ghi localStorage. */

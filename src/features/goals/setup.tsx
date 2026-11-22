@@ -43,6 +43,7 @@ function Results({ draft, onEdit, onSave }: {
       <div><dt>{changeLabel} mỗi ngày</dt><dd>{formatNumber(Math.abs(plan.dailyChange))} kcal/ngày <small>(xấp xỉ)</small></dd></div>
       <div><dt>{changeLabel} mỗi tuần</dt><dd>{formatNumber(Math.abs(plan.signedWeekly))} kcal/tuần</dd></div>
     </dl>
+    {plan.lowIntake && <p className="help-note" role="note">Mức ước tính dưới 1.200 kcal/ngày. Đây chỉ là điểm bắt đầu; nên hỏi ý kiến bác sĩ hoặc chuyên gia dinh dưỡng trước khi áp dụng.</p>}
     <h2>Macro mỗi ngày</h2>
     <div className="target-macros">
       {macros.map(([label, value, kind]) => <div className={kind} key={kind}>
@@ -195,6 +196,10 @@ export function FirstRun() {
     } catch {
       setMessage("Trình duyệt chưa cho phép lưu. Bạn vẫn có thể xem kết quả trong phiên này.");
     }
+  }
+
+  if (saved === undefined && !preview && !editing) {
+    return <div className="loading-state" role="status"><span className="loading-line" /><span className="loading-block" />Đang tải nội dung…</div>;
   }
 
   const goalCard = profile ? <section className="card setup-card" id="muc-tieu">

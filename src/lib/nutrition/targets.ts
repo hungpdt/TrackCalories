@@ -36,10 +36,22 @@ export function isProfileDraft(value: unknown): value is ProfileDraft {
   return Object.keys(emptyProfile).every(key => typeof Reflect.get(value, key) === "string");
 }
 
-function decimal(input: string) {
+/** Dạng "1.200" hoặc "12.500.000": dễ là dấu chấm ngăn cách hàng nghìn kiểu Việt, không tự đoán. */
+export function looksLikeThousands(input: string) {
+  return /^\d{1,3}(?:\.\d{3})+$/.test(input.trim());
+}
+
+/**
+ * Đọc số không âm từ ô nhập: chấp nhận "75,5" hoặc "75.5".
+ * Trả NaN cho chữ, số mũ ("1e3"), dấu âm, nhiều dấu thập phân và dạng giống hàng nghìn ("1.200").
+ */
+export function parseDecimal(input: string) {
   const value = input.trim();
+  if (looksLikeThousands(value)) return NaN;
   return /^\d+(?:[.,]\d+)?$/.test(value) ? Number(value.replace(",", ".")) : NaN;
 }
+
+const decimal = parseDecimal;
 
 function inRange(value: number, low: number, high: number) {
   return Number.isFinite(value) && value >= low && value <= high;
@@ -79,14 +91,16 @@ export function calculateTargets(draft: ProfileDraft) {
   const maintenance = Math.round(resting * activity.factor);
   const signedWeekly = draft.goal === "gain" ? weekly : -weekly;
   const kcal = Math.round(maintenance + signedWeekly / 7);
-  if (kcal < Math.max(1200, resting) || (signedWeekly < 0 && -signedWeekly / 7 > maintenance * 0.2)) {
+  // Ngưỡng an toàn chỉ chặn khi đang tạo thâm hụt; duy trì/tăng luôn có mức ước tính, kèm lưu ý nếu thấp.
+  if (signedWeekly < 0 && (kcal < Math.max(1200, resting) || -signedWeekly / 7 > maintenance * 0.2)) {
     return { error: "Mức nạp ước tính quá thấp theo giới hạn của công cụ. Giảm mức thâm hụt mỗi tuần hoặc chọn duy trì." };
   }
+  const lowIntake = kcal < 1200;
   const protein = Math.round(Math.min(body.weight * goal.protein, kcal * 0.35 / 4));
   const fat = Math.round(kcal * 0.25 / 9);
   const carbs = Math.round((kcal - protein * 4 - fat * 9) / 4);
   return {
-    plan: { resting, maintenance, kcal, protein, fat, carbs, signedWeekly: signedWeekly || 0,
+    plan: { resting, maintenance, kcal, protein, fat, carbs, signedWeekly: signedWeekly || 0, lowIntake,
       dailyChange: kcal - maintenance, leanMass: body.fat === null ? null : body.weight * (1 - body.fat / 100) },
   };
 }

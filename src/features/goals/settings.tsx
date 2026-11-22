@@ -20,7 +20,7 @@ export function Settings() {
     <div className="editor-grid">
       <section className="card">
         <h2>Mục tiêu dinh dưỡng</h2>
-        {plan && profile ? <>
+        {profile === undefined ? <p className="muted" role="status">Đang tải mục tiêu…</p> : plan && profile ? <>
           <p className="muted">Tính từ hồ sơ bạn đã lưu trên trình duyệt này · {goals[profile.goal as keyof typeof goals].label}.</p>
           <dl className="settings-list">{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
           <Link className="button" href="/#muc-tieu"><Pencil size={18} /> Chỉnh hồ sơ và mục tiêu</Link>

@@ -52,7 +52,24 @@ test("sau khi lưu: Tổng quan hiện Dashboard, Cài đặt dùng cùng mục 
   else await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cài đặt" }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByText("2.509 kcal/ngày")).toBeVisible();
-  await expect(page.getByText("2000", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Dữ liệu minh họa")).toHaveCount(0);
+});
+
+test("editor bữa ăn từ chối số dạng hàng nghìn và nhận dấu phẩy thập phân", async ({ page }) => {
+  await page.goto("/add-meal");
+  await page.getByLabel("Tên món").fill("Món thử");
+  await page.getByLabel("Mô tả lượng ăn").fill("1 phần");
+  await page.getByLabel("Calories (kcal)").fill("1.200");
+  await page.getByLabel("Protein (g)").fill("10");
+  await page.getByLabel("Carbs (g)").fill("20");
+  await page.getByLabel("Chất béo (g)").fill("2,5");
+  await page.getByRole("button", { name: "Xác nhận thêm mẫu" }).click();
+  await expect(page.getByText("Không dùng dấu chấm ngăn cách hàng nghìn", { exact: false })).toBeVisible();
+  await expect(page).toHaveURL(/\/add-meal/);
+  await page.getByLabel("Calories (kcal)").fill("1200");
+  await page.getByRole("button", { name: "Xác nhận thêm mẫu" }).click();
+  await expect(page).toHaveURL(/\/history\?date=/);
+  await expect(page.getByText("F 2,5 g", { exact: false })).toBeVisible();
 });
 
 test("tăng cân và tăng cơ giảm mỡ áp dụng đúng dấu, ẩn món khi có dị ứng", async ({ page }) => {
