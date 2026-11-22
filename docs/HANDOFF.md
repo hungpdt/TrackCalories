@@ -1,15 +1,14 @@
 # Bàn giao hiện tại — Tcgm Calories Tracker
 
-Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Codex; checkpoint kiểm tra UI bởi Claude cùng ngày.
+Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude (G1 do Codex viết, Claude kiểm tra UI, sửa và hoàn tất).
 
 ## Trạng thái và quyền
 
 - Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code.
-- Đang G1 trên `feature/app-shell`. Code khung đã viết, build/lint/typecheck đạt; chưa nghiệm thu visual/mobile trực tiếp nên chưa đánh dấu G1 hoàn tất.
-- Main giữ bản ổn định. Commit tài liệu `18fbe4f` đã push origin/main với sự đồng ý của người dùng.
-- Người dùng cho phép 2 commit trên `feature/app-shell` (22/11/2026, Claude thực hiện): `8e9bd29 docs: add contribution guidelines` và commit tiếp theo `feat(app-shell): add Vietnamese tracker preview` (code G1, tests, tài liệu). Xem `git log` để lấy mã commit thứ hai. `.claude/launch.json` cố ý không commit.
-- CHƯA push, CHƯA merge main. Phải hỏi trước mỗi push/commit tiếp theo. Người dùng yêu cầu agent riêng test/review trước push.
-- Các feature branch tiếp theo tạo khi bắt đầu giai đoạn, từ main sau khi phần phụ thuộc đã merge. Chưa tạo hàng loạt branch từ nền cũ.
+- G1 HOÀN TẤT: đã kiểm tra UI desktop/mobile, review độc lập, sửa theo review; lint/typecheck/build/unit/E2E đạt (chi tiết bên dưới). Chưa thử điện thoại thật/Safari.
+- Git (người dùng cho phép từng bước): commit `8e9bd29`, `65fcc71`, `4178854` trên `feature/app-shell`, đã push origin. Người dùng chọn “Merge G1 vào main rồi tạo nhánh”: commit HANDOFF này, fast-forward main và push main; sau đó tạo `feature/auth-database` từ main cho G2.
+- Người dùng chọn Supabase local bằng Docker cho G2 (Docker Desktop cần được bật; Supabase CLI cài làm devDependency).
+- Phải hỏi trước mỗi commit/push tiếp theo. Người dùng muốn agent riêng test/review trước push.
 
 ## Đã triển khai
 
@@ -58,7 +57,7 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Codex; checkpoint kiểm tra UI 
 ## Việc tiếp theo
 
 1. Đã kiểm tra UI và sửa 3 lỗi (xem mục Kiểm tra). Còn lỗi nhỏ tùy chọn: xóa món không hỏi xác nhận, dropdown "Chọn món mẫu" trống khi mở từ ?food=. Chưa thử điện thoại thật/Safari.
-2. Đã commit G1, review độc lập và commit sửa review trên `feature/app-shell` (xem `git log`). CHƯA push. Tiếp theo: xin phép push `feature/app-shell` lên origin, rồi xin phép merge vào main.
+2. Đã commit G1, review độc lập và commit sửa review trên `feature/app-shell`. Người dùng cho phép push: đã push `feature/app-shell` lên origin (tracking `origin/feature/app-shell`, tới `4178854`), 22/11/2026, Claude. Ghi chú này là thay đổi HANDOFF chưa commit. CHƯA merge main. Tiếp theo: xin phép merge (trực tiếp hoặc qua PR GitHub) và push main.
 3. Chỉ merge main sau khi giai đoạn đạt kiểm tra cần thiết và có quyền tạo commit/push tương ứng. Chưa merge vì thiếu visual verification.
 4. Tiếp tục G2 trên feature/auth-database sau nền được chốt: Supabase, auth, migrations/RLS và tests owner. Kế hoạch đã duyệt; không hỏi lại phạm vi MVP.
 
