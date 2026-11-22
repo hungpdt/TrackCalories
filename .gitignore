@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local secrets; keep a safe template trackable
+.env
+.env.*
+!.env.example
+
+# Local service/tool state
+.vercel/
+supabase/.temp/
+supabase/.branches/
+*.log
+.DS_Store
+Thumbs.db
