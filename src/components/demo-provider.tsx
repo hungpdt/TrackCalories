@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
 import { initialFoods, initialMeals, initialWeights, type Food, type Meal } from "@/lib/demo/data";
-// Mục tiêu không nằm ở đây: Dashboard và Cài đặt cùng đọc hồ sơ đã lưu (features/goals/profile-store).
+// Mục tiêu không nằm ở đây: Dashboard và Cài đặt đọc mục tiêu từ database (features/goals/queries).
 type DemoState = {
   foods: Food[]; setFoods: Dispatch<SetStateAction<Food[]>>;
   meals: Meal[]; setMeals: Dispatch<SetStateAction<Meal[]>>;

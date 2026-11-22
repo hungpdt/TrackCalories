@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Dashboard } from "@/features/dashboard/dashboard";
-import { clearProfile, saveProfile, useSavedProfile } from "@/features/goals/profile-store";
-import { formatNumber } from "@/lib/demo/data";
+import { saveProfileGoal } from "@/features/goals/actions";
+import { formatNumber, type Nutrients } from "@/lib/demo/data";
 import {
   activities, calculateTargets, emptyProfile, familiarFoods, goals,
   readBody, splitFoods, type ProfileDraft,
@@ -20,10 +21,11 @@ function Field({ title, hint, children }: { title: string; hint?: string; childr
   </label>;
 }
 
-function Results({ draft, onEdit, onSave }: {
+function Results({ draft, onEdit, onSave, saving = false }: {
   draft: ProfileDraft;
   onEdit: () => void;
   onSave?: () => void;
+  saving?: boolean;
 }) {
   const { plan } = calculateTargets(draft);
   if (!plan) return null;
@@ -65,7 +67,7 @@ function Results({ draft, onEdit, onSave }: {
     </section>
     <div className="setup-actions">
       <button className="button secondary" onClick={onEdit}>Chỉnh thông tin</button>
-      {onSave ? <button className="button" onClick={onSave}>Lưu mục tiêu trên thiết bị</button>
+      {onSave ? <button className="button" onClick={onSave} disabled={saving}>{saving ? "Đang lưu…" : "Lưu mục tiêu"}</button>
         : <Link className="button" href="/add-meal">Ghi bữa ăn</Link>}
     </div>
   </div>;
@@ -167,15 +169,16 @@ function SetupForm({ initial, onCancel, onDone }: {
   </section>;
 }
 
-export function FirstRun() {
-  const saved = useSavedProfile();
+export function FirstRun({ saved, targets }: { saved: ProfileDraft | null; targets: Nutrients | null }) {
+  const router = useRouter();
+  const [saving, startSaving] = useTransition();
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState<ProfileDraft | null>(null);
   const [initial, setInitial] = useState<ProfileDraft | null>(null);
   const [message, setMessage] = useState("");
   const profile = preview ?? (!editing ? saved : null);
-  // Đã có mục tiêu đã lưu và không đang chỉnh: Tổng quan hiện Dashboard ngày trước, mục tiêu ở dưới.
-  const savedPlan = saved && !editing && !preview ? calculateTargets(saved).plan : undefined;
+  // Đã có mục tiêu trong database và không đang chỉnh: Tổng quan hiện Dashboard ngày trước, mục tiêu ở dưới.
+  const showDashboard = saved && targets && !editing && !preview;
 
   function edit(value: ProfileDraft) {
     setInitial(value);
@@ -186,46 +189,36 @@ export function FirstRun() {
   }
 
   function save() {
-    if (!preview) return;
-    try {
-      saveProfile(preview);
+    if (!preview || saving) return;
+    const draft = preview;
+    startSaving(async () => {
+      const result = await saveProfileGoal(draft);
+      if (!result.ok) { setMessage(result.error); return; }
       setPreview(null);
       setEditing(false);
-      setMessage("Đã lưu mục tiêu trong trình duyệt này.");
+      setMessage("Đã lưu mục tiêu vào tài khoản.");
+      router.refresh();
       window.scrollTo({ top: 0 });
-    } catch {
-      setMessage("Trình duyệt chưa cho phép lưu. Bạn vẫn có thể xem kết quả trong phiên này.");
-    }
-  }
-
-  if (saved === undefined && !preview && !editing) {
-    return <div className="loading-state" role="status"><span className="loading-line" /><span className="loading-block" />Đang tải nội dung…</div>;
+    });
   }
 
   const goalCard = profile ? <section className="card setup-card" id="muc-tieu">
-    <Results draft={profile} onEdit={() => edit(profile)} onSave={preview ? save : undefined} />
+    <Results draft={profile} onEdit={() => edit(profile)} onSave={preview ? save : undefined} saving={saving} />
     <p role="status" className="feedback">{message}</p>
-    {saved && !preview && <button className="text-link setup-remove" onClick={() => {
-      try {
-        clearProfile();
-        setInitial(null);
-        setMessage("");
-      } catch { setMessage("Không thể xóa hồ sơ trong trình duyệt này."); }
-    }}>Xóa thông tin trên thiết bị</button>}
   </section> : <SetupForm initial={initial ?? saved ?? emptyProfile}
     onCancel={saved ? () => { setEditing(false); setInitial(null); } : undefined}
     onDone={value => { setPreview(value); setMessage(""); }} />;
-  const localNote = <p className="setup-local muted">Thông tin chỉ lưu trên trình duyệt này khi bạn bấm lưu. Không gửi thông tin sức khỏe hoặc dị ứng lên máy chủ.</p>;
+  const accountNote = <p className="setup-local muted">Hồ sơ và mục tiêu được lưu vào tài khoản của bạn khi bấm lưu. Mục tiêu mới có hiệu lực từ hôm nay, không đổi mục tiêu của các ngày trước.</p>;
 
-  if (savedPlan) return <>
-    <Dashboard targets={savedPlan} />
+  if (showDashboard) return <>
+    <Dashboard targets={targets} />
     <section className="setup-page home-goals" aria-labelledby="goal-heading">
       <header className="setup-heading">
         <h2 id="goal-heading">Mục tiêu dinh dưỡng của bạn</h2>
         <p className="muted">Mức nạp ước tính và lượng protein, carb, chất béo mỗi ngày dùng cho Dashboard.</p>
       </header>
       {goalCard}
-      {localNote}
+      {accountNote}
     </section>
   </>;
 
@@ -235,6 +228,6 @@ export function FirstRun() {
       <p className="muted">{profile ? "Xem mức nạp ước tính và lượng protein, carb, chất béo mỗi ngày." : "Nhập số đo, mức vận động và thói quen ăn uống để tính mức nạp mỗi ngày."}</p>
     </header>
     {goalCard}
-    {localNote}
+    {accountNote}
   </div>;
 }

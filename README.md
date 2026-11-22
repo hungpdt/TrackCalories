@@ -1,49 +1,60 @@
 # tcgm — Calories Tracker
 
-Ứng dụng tiếng Việt, ưu tiên điện thoại. Hiện triển khai **G1: khung giao diện minh họa**, chưa phải MVP hoàn chỉnh.
+Ứng dụng tiếng Việt, ưu tiên điện thoại. Đã có **G1 (khung giao diện)** và **G2 (đăng nhập, database Supabase, RLS)**; chưa phải MVP hoàn chỉnh.
 
 ## Chạy local
 
-Yêu cầu Node.js >= 20.9 (đang phát triển với Node 24), npm. Từ thư mục dự án:
+Yêu cầu Node.js >= 20.9 (đang phát triển với Node 24), npm, Docker Desktop (cho Supabase local).
 
 ```powershell
 npm ci
+npx supabase start
+```
+
+Lần đầu `supabase start` tải image Docker (vài phút) và áp migration trong `supabase/migrations`. Dự án dùng dải cổng 554xx (API `127.0.0.1:55421`, Studio `127.0.0.1:55423`) để không đụng dự án Supabase local khác ở 543xx. Tạo `.env.local` (Git bỏ qua) từ thông tin `npx supabase status -o env`:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=<API_URL>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<PUBLISHABLE_KEY>
+```
+
+Không đặt `SECRET_KEY`/`SERVICE_ROLE_KEY` vào `.env.local` hay code app. Sau đó:
+
+```powershell
 npm run dev
 ```
 
-Mở `http://127.0.0.1:3000`. Không cần API key cho G1. Dừng bằng Ctrl+C.
+Mở `http://127.0.0.1:3000`, tạo tài khoản bằng email + mật khẩu (Supabase local không cần xác nhận email). Dừng Supabase bằng `npx supabase stop`.
 
 ```powershell
 npm run lint
 npm run typecheck
 npm run build
 npm test
-npm start
+npm run test:db
+npm run test:e2e
 ```
 
-`npm start` cần chạy build trước. Lockfile được lưu trong Git; dùng npm ci để cài cùng phiên bản. Cấu hình theo tài liệu chính thức [Next.js](https://nextjs.org/docs/app/getting-started/installation) và [Tailwind CSS](https://tailwindcss.com/docs/installation/framework-guides/nextjs).
+- `npm test`: unit test (Vitest, `tests/unit`): công thức mục tiêu, đọc số.
+- `npm run test:db`: integration test database (`tests/db`), cần Supabase local đang chạy. Tạo hai tài khoản giả, kiểm tra RLS, tham chiếu chéo, RPC lưu bữa (transaction, idempotency, revision, quy đổi đơn vị), snapshot khi xóa món, mục tiêu theo ngày hiệu lực.
+- `npm run test:e2e`: Playwright trên desktop và mô phỏng Pixel 7, cần Supabase local và `.env.local`. Test tự khởi động server riêng cổng 3100 nên không chạy được khi đang có một `next dev` khác trong thư mục. Máy local mặc định dùng Edge; khi biến `CI` được đặt dùng Chromium của Playwright (cần `npx playwright install chromium`); đặt `PLAYWRIGHT_CHANNEL` để chọn trình duyệt khác.
+- `npm run gen:types`: sinh lại `src/lib/supabase/database.types.ts` sau khi đổi migration.
 
-Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại lỗi tạo tiến trình xử lý CSS (kể cả ngoài sandbox); Webpack build đã chạy đạt. TypeScript dùng 5.9 vì bộ typescript-eslint hiện chưa hỗ trợ TypeScript 7. ESLint 9 tương thích với cấu hình hiện tại nhưng npm thông báo đã hết hỗ trợ; cần đánh giá nâng lên phiên bản được hỗ trợ cùng bộ plugin ở đợt bảo trì, không bỏ qua lỗi lint để nâng phiên bản.
+`npm start` cần chạy build trước. Lockfile được lưu trong Git; dùng npm ci để cài cùng phiên bản.
+
+Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại lỗi tạo tiến trình xử lý CSS; Webpack build đã chạy đạt. TypeScript dùng 5.9 vì typescript-eslint chưa hỗ trợ TypeScript 7. ESLint 9 tương thích nhưng npm báo hết hỗ trợ; cần đánh giá nâng cùng bộ plugin ở đợt bảo trì.
 
 ## Phạm vi hiện tại
 
-Trang chủ mở luồng thiết lập mới. Nhập số đo, vận động, mục tiêu và mức điều chỉnh theo tuần, sau đó nhập món quen và dị ứng tùy chọn. Kết quả là ước tính cho người lớn, có giải thích phép tính. Hồ sơ chỉ lưu trong trình duyệt sau khi xác nhận và có thể xóa trên trang chủ. Gợi ý ưu tiên món đã nhập, tạm ẩn khi có dị ứng.
-
-Trang chủ: khi đã lưu hồ sơ hiện Dashboard ngày (nhật ký minh họa) và thẻ mục tiêu bên dưới; Cài đặt hiện cùng mục tiêu đó. Mức nạp dưới 1.200 kcal chỉ được hiện cho Duy trì/Tăng, kèm lưu ý hỏi chuyên gia; thâm hụt dưới ngưỡng bị chặn. Ô số chấp nhận "74,5" hoặc "74.5", từ chối dạng hàng nghìn "1.200" và yêu cầu nhập "1200".
-
-`npm test` chạy unit test (Vitest, `tests/unit`: công thức mục tiêu, đọc số). `npm run test:e2e` chạy Playwright cho luồng thiết lập, Cài đặt và editor trên desktop và mô phỏng Pixel 7; test tự khởi động server riêng cổng 3100, nên không chạy được khi đang có một `next dev` khác trong thư mục. Máy local mặc định dùng Edge; khi biến `CI` được đặt dùng Chromium của Playwright (cần `npx playwright install chromium`); đặt `PLAYWRIGHT_CHANNEL` để chọn trình duyệt khác.
-
-Sáu trang: `/`, `/add-meal`, `/history`, `/foods`, `/weight`, `/settings`. Có điều hướng desktop/mobile, loading/error/empty/404. Thử tìm món có/không dấu, yêu thích, chọn món vào editor, thêm/xóa món trong nhật ký mẫu, đổi ngày xem, nhập/xóa cân nặng mẫu và thay mục tiêu mẫu.
-
-**Dữ liệu nhật ký minh họa chỉ giữ trong bộ nhớ của phiên trang** và quay về fixture khi tải lại. Ngày minh họa ban đầu là 22/11/2026 để các màn hình dùng cùng fixture.
-
-Editor G1 nhập tổng dinh dưỡng cho lượng ăn mô tả, chưa quy đổi đơn vị/khẩu phần. Bản đồ cân nặng dùng SVG minh họa khoảng cách theo lần ghi. G3 sẽ bổ sung phép tính nghiệp vụ/decimal; G5 triển khai biểu đồ thật và mục tiêu có hiệu lực.
-
-Auth, Supabase persistence/RLS, sửa bữa hoàn chỉnh, Food Library CRUD đầy đủ, scanner, AI và voice chưa kết nối. Các nút phương thức AI thông báo giai đoạn triển khai, không giả lập phân tích thành công. Không có upload ảnh, micro hoặc gửi dữ liệu đến server AI ở G1.
+- **Đăng nhập:** email/mật khẩu (Supabase Auth). Mọi trang theo dõi yêu cầu đăng nhập: `src/proxy.ts` làm mới session và chuyển khách tới `/login`; layout `(tracker)` kiểm tra lại bằng `getClaims()` phía server. Đăng xuất ở Cài đặt.
+- **Database:** `profiles`, `goals`, `foods`, `meals`, `meal_items`, `weight_logs`, `mutation_requests` với ràng buộc, index và RLS theo `auth.uid()`. Bữa ăn chỉ ghi qua RPC `save_meal` (một transaction, chống trùng theo `request_id`, phát hiện sửa bản cũ bằng `revision`, tự tính tổng từ cơ sở × hệ số, không tự đổi ml↔g). Xóa món trong thư viện chỉ đặt `food_id` về null, giữ snapshot.
+- **Hồ sơ và mục tiêu:** luồng thiết lập trên trang chủ lưu vào tài khoản qua RPC `save_profile_goal`; server tự tính lại mục tiêu từ hồ sơ. Mục tiêu có hiệu lực từ hôm nay theo múi giờ hồ sơ (mặc định Asia/Ho_Chi_Minh); lưu lại trong cùng ngày thì cập nhật phiên bản của ngày đó, ngày cũ giữ mục tiêu cũ. Cân nặng nhập trong hồ sơ ghi vào nhật ký cân nặng.
+- Mức nạp dưới 1.200 kcal chỉ được hiện cho Duy trì/Tăng, kèm lưu ý hỏi chuyên gia; thâm hụt dưới ngưỡng bị chặn. Ô số chấp nhận "74,5" hoặc "74.5", từ chối dạng hàng nghìn "1.200".
+- **Vẫn là dữ liệu minh họa** (giữ trong bộ nhớ phiên trang, về lại fixture khi tải lại): Dashboard nhật ký, Kho món, Nhật ký, Cân nặng, editor bữa ăn. Các trang này sẽ chuyển sang database ở G3–G5. Scanner, AI và voice chưa kết nối; không có upload ảnh, micro hoặc gửi dữ liệu đến AI.
 
 ## Môi trường các giai đoạn sau
 
-Sao chép `.env.example` thành `.env.local` rồi điền ở máy local, không đưa secrets vào chat/Git. G2 cần Supabase; G6–G7 cần OpenAI key/model. Tên biến public Supabase có thể ở browser nhưng phải đi cùng RLS; key OpenAI chỉ ở server. Chưa có migration để chạy, chưa có deploy Vercel; hướng dẫn sẽ bổ sung khi triển khai.
+G6–G7 cần OpenAI key/model trong `.env.local` (chỉ phía server, không có tiền tố `NEXT_PUBLIC_`). Chưa có project Supabase cloud hay deploy Vercel; chỉ làm khi được giao.
 
 ## Làm việc giữa Codex và Claude
 

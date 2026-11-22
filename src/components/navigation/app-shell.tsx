@@ -10,7 +10,7 @@ const links = [
   { href: "/weight", label: "Cân nặng", icon: Scale },
   { href: "/settings", label: "Cài đặt", icon: Settings2 },
 ];
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, email }: { children: ReactNode; email: string | null }) {
   const pathname = usePathname();
   return <div className="app-shell">
     <a href="#main-content" className="skip-link">Đến nội dung chính</a>
@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav aria-label="Điều hướng chính">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`nav-item ${pathname === href ? "active" : ""}`} aria-current={pathname === href ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>
       <Link className="button sidebar-add" href="/add-meal"><Plus size={20} /> Ghi bữa ăn</Link>
       <div className="sidebar-bottom"><Activity size={24} /><p>Từng bữa ăn nhỏ.<br /><strong>Một hành trình của bạn.</strong></p><span className="small">Theo dõi • Thấu hiểu • Tiến bộ</span></div>
-      <div className="profile"><span className="avatar">M</span><div><strong>Tài khoản minh họa</strong><span>Chưa đăng nhập</span></div></div>
+      <Link href="/settings" className="profile"><span className="avatar" aria-hidden="true">{(email ?? "?").charAt(0).toUpperCase()}</span><div><strong>Tài khoản</strong><span className="profile-email">{email ?? "Đã đăng nhập"}</span></div></Link>
     </aside>
     <div className="workspace">
       <header className="topbar"><Link href="/" className="mobile-brand"><Sprout size={22} /> tcgm</Link><span className="topbar-title">Ăn uống có ý thức, mỗi ngày</span><span className="topbar-end"><span className="demo-pill"><FlaskConical size={15} /> Bản xem trước</span><Link href="/settings" className="mobile-settings" aria-label="Cài đặt" aria-current={pathname === "/settings" ? "page" : undefined}><Settings2 size={20} /></Link></span></header>

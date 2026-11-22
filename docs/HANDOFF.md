@@ -1,75 +1,58 @@
 # Bàn giao hiện tại — Tcgm Calories Tracker
 
-Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude (G1 do Codex viết, Claude kiểm tra UI, sửa và hoàn tất).
+Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
 ## Trạng thái và quyền
 
-- Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code.
-- G1 HOÀN TẤT: đã kiểm tra UI desktop/mobile, review độc lập, sửa theo review; lint/typecheck/build/unit/E2E đạt (chi tiết bên dưới). Chưa thử điện thoại thật/Safari.
-- Git (người dùng cho phép từng bước): commit `8e9bd29`, `65fcc71`, `4178854` trên `feature/app-shell`, đã push origin. Người dùng chọn “Merge G1 vào main rồi tạo nhánh”: commit HANDOFF này, fast-forward main và push main; sau đó tạo `feature/auth-database` từ main cho G2.
-- Người dùng chọn Supabase local bằng Docker cho G2 (Docker Desktop cần được bật; Supabase CLI cài làm devDependency).
-- Phải hỏi trước mỗi commit/push tiếp theo. Người dùng muốn agent riêng test/review trước push.
+- Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code. Người dùng yêu cầu “code tiếp các tính năng”.
+- G1 HOÀN TẤT và đã merge: `main` = `07b6d9f` (fast-forward từ `feature/app-shell`, đã push origin với sự cho phép của người dùng).
+- G2 (Auth và database) ĐÃ CODE và ĐÃ COMMIT (người dùng cho phép) trên `feature/auth-database` (tạo từ `main` `07b6d9f`), commit `feat(auth-database): add Supabase auth, schema and RLS`. CHƯA push, CHƯA review độc lập. Phải hỏi trước mỗi commit/push; người dùng muốn agent riêng review trước push.
+- Người dùng chọn Supabase local bằng Docker. Chưa có project Supabase cloud, chưa deploy Vercel.
 
-## Đã triển khai
+## G2 — đã triển khai (chưa commit)
 
-- Next.js 16.4.6, React 19.3.1, TypeScript 5.9, Tailwind 4; npm + lockfile; cấu hình strict/lint/build và env example.
-- Sáu route: tổng quan, thêm bữa, nhật ký, kho món, cân nặng, cài đặt. Layout responsive, navigation, loading/error/empty/404.
-- Mock trong React context: tìm món không dấu, yêu thích, chọn vào editor, thêm/xóa món nhật ký theo ngày, nhập/xóa cân nặng, đổi mục tiêu mẫu. Reload khôi phục fixture.
-- AI/scanner/voice có trạng thái chưa kết nối; không xin micro/camera hoặc gửi dữ liệu. Mọi fixture là giả, có banner.
-- Sửa lỗi thêm bữa ngày khác phải mở đúng ngày trên history?date=... theo review.
-- Sửa cỡ chữ nhãn thường dùng lên >=14px theo review. Chưa visual verify overflow.
-- README ghi cách chạy, giới hạn mock và cấu hình. CONTRIBUTING từ chat phụ được giữ nguyên.
+- Dependencies: `@supabase/supabase-js` 2.119, `@supabase/ssr` 0.12, `zod` 4.6, `server-only`; devDependency `supabase` CLI 3.2. `npm audit`: 0 lỗ hổng.
+- `supabase/config.toml` (`supabase init`): project_id `tcgm`; tắt realtime/storage/edge runtime/analytics (MVP chưa dùng); **đổi toàn bộ cổng sang 554xx** vì máy có dự án Supabase local khác (`hu-tai-chinh`) đang chiếm 543xx. API `127.0.0.1:55421`, DB `55422`, Studio `55423`.
+- Migration `supabase/migrations/20261122120000_init_schema.sql`:
+  - Bảng `profiles` (thêm cột onboarding: height_cm, age_years, sex_for_formula, body_fat_pct, activity_level, frequent/favorite_foods, allergies, timezone có trigger kiểm tra), `goals` (goal_type gồm `recomposition`, weekly_adjustment_kcal, unique(user_id, effective_from)), `foods` (CHECK cơ sở khớp đơn vị), `meals` (revision), `meal_items` (snapshot đầy đủ, composite FK cùng owner, `ON DELETE SET NULL (food_id)`), `weight_logs` (unique ngày), `mutation_requests`.
+  - Dinh dưỡng numeric, CHECK không âm + cận trên (cũng loại NaN). Index theo PLAN mục 4.
+  - RLS mọi bảng theo `auth.uid()`; anon bị revoke; client không được insert/update `meals`/`meal_items` (chỉ qua RPC), không chạm `mutation_requests`. Trigger tạo hồ sơ khi đăng ký.
+  - RPC `save_meal` (SECURITY DEFINER, search_path rỗng, owner từ auth.uid()): một transaction, claim `request_id` (retry cùng payload trả kết quả cũ, payload khác → `idempotency_conflict`, đồng thời chỉ tạo một), sửa cần `expected_revision` (`revision_conflict`), 1–50 item, kiểm food cùng owner, tự tính tổng = cơ sở × hệ số; chỉ quy đổi khi cùng đơn vị hoặc có serving_mass_g/serving_volume_ml, còn lại `incompatible_units` trừ khi `manual_override` (giữ tổng người dùng). Cập nhật `last_used_at`.
+  - RPC `save_profile_goal` (SECURITY INVOKER): cập nhật hồ sơ, upsert mục tiêu ngày hiệu lực = hôm nay theo múi giờ hồ sơ, ghi cân nặng ngày đó.
+- `src/lib/supabase/`: `env.ts`, `server.ts` (`createSupabaseServerClient`, `requireUser` dùng `getClaims()`), `database.types.ts` (sinh bằng `npm run gen:types`).
+- `src/proxy.ts` (Next 16 thay middleware): làm mới session, khách → `/login`, đã đăng nhập vào `/login` → `/`.
+- Route: trang theo dõi chuyển vào `src/app/(tracker)/` với layout gọi `requireUser()`; root layout tối giản; `/login` (đăng nhập/tạo tài khoản, server actions + zod, thông báo lỗi không lộ tài khoản tồn tại); đăng xuất ở Cài đặt; sidebar hiện email.
+- Hồ sơ/mục tiêu lưu database: `features/goals/queries.ts` (mục tiêu có hiệu lực hôm nay), `actions.ts` (server tính lại mục tiêu bằng `calculateTargets`, không tin số client), `profile-mapping.ts`. Bỏ `profile-store.ts` (localStorage) và nút "Xóa thông tin trên thiết bị". Cài đặt là server component, hiện ngày hiệu lực, email, múi giờ.
+- Vẫn là mock: Dashboard nhật ký, Kho món, Nhật ký, Cân nặng, editor (G3–G5 chuyển sang DB).
+- `.env.local` (Git bỏ qua) chứa URL + publishable key local. `.env.example`, README cập nhật hướng dẫn Supabase local và test.
 
-## Kiểm tra đã chạy
+## G2 — kiểm tra đã chạy (Claude, 22/11/2026)
 
-- `npm run lint`: PASS, không warning sau sửa postcss config.
-- `npm run typecheck`: PASS.
-- `npm run build`: PASS với Webpack, tất cả sáu route được build.
-- HTTP GET sáu route (gồm history?date=2026-11-20): tất cả 200, có banner Dữ liệu minh họa.
-- `git diff --check`: PASS cho tracked changes. File mới chưa staged.
-- Agent `review_app_shell` review độc lập: lint/typecheck/diff PASS, không thấy secret hoặc request AI. Finding TS7 không tương thích lint và ngày redirect đã sửa; chữ mobile đã nâng sau review.
-- Browser UI (Claude, 22/11/2026, dev server `npm run dev`, cấu hình preview `.claude/launch.json` mới): đã kiểm tra tương tác desktop và mobile 375×812. Chưa thử trên điện thoại thật/Safari.
-  - ĐẠT: onboarding 3 bước (chặn ô bắt buộc, nhận "75,5"), kết quả khớp Mifflin (ví dụ giả: 2641 duy trì → 2391 kcal, macro cộng ≈ 2390), lưu và reload vẫn còn; Dashboard tổng khớp item; tìm "pho bo" không dấu ra Phở bò; "Thêm vào bữa" điền sẵn editor; sửa kcal + đổi ngày 20/11 + bữa tối → chuyển history?date=2026-11-20 đúng 500 kcal; xóa món → trạng thái trống; editor chặn kcal âm/thiếu trường, nhận "1,5"; cân nặng trùng ngày báo và cập nhật không tạo dòng mới, chặn -5/abc/0; bốn tab AI/ảnh/nhãn/voice hiện "chưa kết nối" + nút nhập thủ công, không xin quyền; 404 tiếng Việt; banner Dữ liệu minh họa trên các trang tracker; không console error từ app.
-  - Mobile: cả sáu route không tràn ngang (scrollWidth = 375), không chữ < 12px trong main.
-  - ĐÃ SỬA (Claude, cùng ngày) 3 lỗi dưới đây, xem mục "Sửa sau kiểm tra UI". Ghi nhận gốc: (1) Thanh điều hướng mobile không có Cài đặt (`app-shell.tsx` chỉ lấy links 0–3), không có đường vào /settings trên điện thoại ngoài link ẩn trong nhật ký minh họa. (2) Khi đã lưu hồ sơ, "Áp dụng mục tiêu mẫu" ở Cài đặt báo thành công nhưng Dashboard bỏ qua vì `Dashboard` ưu tiên prop `targets` từ hồ sơ; Cài đặt cũng hiện 2000 kcal mẫu thay vì mục tiêu đã lưu. (3) Trang Tổng quan sau thiết lập chỉ hiện mục tiêu, Dashboard ngày (đã nạp/còn lại/bữa) phải bấm "Xem nhật ký minh họa" mới thấy, lệch PRD mục 4.
-  - Nhỏ: nhãn "Kho món ăn" xuống 2 dòng ở mobile nav; xóa món không hỏi xác nhận; thông báo required/định dạng ngày theo ngôn ngữ trình duyệt (tiếng Anh trong môi trường test); dropdown "Chọn món mẫu" trống dù editor đã điền từ ?food=.
-- Sửa sau kiểm tra UI (Claude, 22/11/2026):
-  - Mobile: thêm nút Cài đặt (icon, aria-label "Cài đặt") ở topbar khi ≤700px; nhãn mobile nav "Kho món" để không xuống dòng (`app-shell.tsx`, cuối `globals.css`).
-  - Mục tiêu một nguồn: tách `src/features/goals/profile-store.ts` (đọc/lưu/xóa hồ sơ localStorage). Bỏ mục tiêu mẫu 2000 kcal khỏi DemoProvider/data; Dashboard bắt buộc nhận `targets`. Cài đặt hiện mục tiêu từ hồ sơ (chỉ đọc) + link `/#muc-tieu` để chỉnh; chưa có hồ sơ thì báo chưa thiết lập, không tạo mục tiêu giả.
-  - Tổng quan: khi đã lưu hồ sơ hiện Dashboard ngày ở đầu trang (h1 "Một ngày của bạn"), thẻ mục tiêu `#muc-tieu` bên dưới; bỏ nút "Xem nhật ký minh họa". Chưa có hồ sơ hoặc đang chỉnh vẫn là form thiết lập.
-  - Test: sửa selector `getByRole("alert")` bị trùng route announcer của Next (lỗi test có sẵn), thêm E2E cho 3 lỗi trên.
-  - Đã chạy: `npm run lint` PASS, `npm run typecheck` PASS, `npm run build` PASS (6 route + not-found), `npx playwright test` 6/6 PASS (desktop Edge + Pixel 7). Kiểm tra lại trên trình duyệt desktop và mobile 375px: Dashboard/Cài đặt cùng 2391 → đổi sang Duy trì cùng 2641; nút Cài đặt mobile vào /settings; không tràn ngang.
-  - `.claude/launch.json` là cấu hình preview cục bộ của Claude, chưa quyết định có commit hay không.
-- Review độc lập nhánh `feature/app-shell` (agent riêng do Claude giao, 22/11/2026, chỉ đọc): lint/typecheck/build PASS, Playwright 6/6 PASS. Công thức Mifflin, hệ số vận động, ÷7 và chia macro tính tay đúng. Không có blocker, không lộ secret.
-  - Cần sửa (Claude đã xác minh 1–2 bằng đọc code): (1) `targets.ts:82` ngưỡng 1200 kcal áp cả khi Duy trì/Tăng → người hợp lệ (ví dụ giả: nữ 45 kg, 150 cm, 70 tuổi, ít vận động) không có mục tiêu và nhận lời khuyên "chọn duy trì" sai. (2) `meal-editor.tsx:23`, `weight-tracker.tsx:12` parse bằng `Number(replace(",", "."))`: "1.200" kcal thành 1,2; chấp nhận "1e3"; cân nặng không có giới hạn trên. Nên dùng chung parser chặt của `targets.ts` + giới hạn. (3) E2E dùng "80,0" không chứng minh parse dấu phẩy; thiếu test Duy trì, BMI < 18,5, ngưỡng thấp; chưa có unit test `targets.ts`.
-  - ĐÃ SỬA (Claude, 22/11/2026, đã commit `fix(app-shell): address review findings` với sự cho phép của người dùng, chưa push): (1) ngưỡng 1200 kcal chỉ chặn khi có thâm hụt; Duy trì/Tăng dưới 1200 hiện mục tiêu kèm lưu ý hỏi chuyên gia (`plan.lowIntake`). (2) `parseDecimal`/`looksLikeThousands` export từ `targets.ts`, dùng ở editor và cân nặng: từ chối "1.200", "1e3", âm; editor giới hạn 10000 kcal/2000 g, cân nặng 20–350 kg. (3) Thêm Vitest 5.1.1 (devDependency, `npm audit` 0 lỗ hổng; bản 3.x bị lỗ hổng tinypool nên không dùng), `vitest.config.mts`, `tests/unit/targets.test.ts` 28 case; scripts `test`, `test:e2e`; E2E mới cho editor hàng nghìn/dấu phẩy, bỏ assertion "2000" yếu. Nhỏ: banner ẩn ở /settings; server snapshot `undefined` → hiện trạng thái đang tải thay vì chớp form; Playwright channel theo `PLAYWRIGHT_CHANNEL`, CI dùng Chromium, local Edge; `.gitignore` thêm `.claude/`. `next-env.d.ts` bị Next đổi qua lại giữa dev/build nên đã thêm vào `.gitignore` và `git rm --cached` (file local vẫn còn); đã thử `tsc --noEmit` không có file này vẫn đạt.
-  - Kiểm tra sau sửa: lint PASS, typecheck PASS, `npm test` 28/28 PASS, build PASS, Playwright 8/8 PASS (chạy bằng config tạm trỏ tới `next dev` đang chạy sẵn ở cổng 3000 PID 30348 không do Claude mở, vì webServer cổng 3100 không khởi động được khi có dev server khác; config tạm đã xóa). Ảnh Playwright: Duy trì nữ 45 kg/150 cm/70 tuổi → 1.052 kcal kèm lưu ý.
-  - Ghi nhận gốc nhỏ: Playwright cố định `channel: "msedge"`; banner "Dữ liệu minh họa" sai ngữ cảnh ở /settings (hồ sơ là localStorage bền); người đã lưu thấy form thiết lập chớp trước Dashboard (server snapshot null); `.gitignore` chưa có `.claude/` và `next-env.d.ts` đang được commit.
-- Chưa test AI thật, Supabase/RLS, persistence: chưa triển khai, không được coi đạt A01–A15 đầy đủ.
+- `npm run lint` PASS, `npm run typecheck` PASS, `npm test` 28/28 PASS, `npm run build` PASS (proxy + route động).
+- `npm run test:db` 18/18 PASS (Supabase local): hồ sơ tự tạo và chỉ đọc của mình; anon không đọc/gọi RPC; B không đọc/sửa/xóa food của A; không insert với user_id người khác (foods, weight_logs); client không insert meals trực tiếp; CHECK âm/cơ sở lệch; cân nặng trùng ngày; timezone sai; A04 100 ml → 250 ml = 150/12,5/6,75/8; retry + payload khác; hai request đồng thời; rollback khi một item lỗi; bữa rỗng; ml↔g bị chặn và override giữ tổng; revision; B không dùng food/meal của A; xóa food giữ snapshot, xóa meal xóa item; save_profile_goal cập nhật cùng ngày và cô lập user.
+- Playwright 12/12 PASS (desktop Edge + Pixel 7): khách bị chuyển `/login` và sai mật khẩu báo lỗi; thiết lập lưu vào tài khoản và reload còn; Dashboard/Cài đặt cùng mục tiêu, email hiển thị; đăng xuất → đăng nhập lại còn mục tiêu, tài khoản mới không thấy; editor số hàng nghìn; tăng cân/tăng cơ. Chạy bằng config tạm trỏ tới `next dev` có sẵn ở cổng 3000 (PID 30348, không do Claude mở; webServer 3100 không chạy được khi có dev server khác), config tạm đã xóa.
+- Bundle `.next/static` và mã nguồn không chứa SECRET_KEY/SERVICE_ROLE_KEY local, `sb_secret_`, `service_role`, `OPENAI_API_KEY`.
+- Ảnh Playwright trang đăng nhập và Cài đặt mobile: bố cục ổn. Cảnh báo hydration trong log dev là do Playwright chèn `caret-color` khi chụp ảnh trước hydrate, không phải lỗi app.
+- CHƯA: review độc lập G2; thử trên điện thoại thật; Supabase cloud; luồng xác nhận email (local tắt confirmations).
+
+## G1 — tóm tắt
+
+- Next.js 16.4.6, React 19.3, TypeScript 5.9, Tailwind 4, Webpack (Turbopack lỗi CSS trên máy này). Sáu trang, điều hướng desktop/mobile (Cài đặt qua icon topbar trên mobile), loading/error/empty/404, AI/scanner/voice hiển thị “chưa kết nối”.
+- Đã kiểm tra UI desktop/mobile, review độc lập, sửa theo review (ngưỡng 1200 kcal chỉ chặn thâm hụt, parser số chặt `parseDecimal`, Vitest unit, Playwright channel cấu hình được, `.gitignore` có `.claude/` và `next-env.d.ts`). Commit `8e9bd29`, `65fcc71`, `4178854`, `07b6d9f`.
+- Lỗi nhỏ còn lại: xóa món mock không hỏi xác nhận; dropdown “Chọn món mẫu” trống khi mở từ `?food=`.
 
 ## Vấn đề môi trường và giới hạn
 
-- Turbopack lỗi tạo process xử lý CSS ngay cả ngoài sandbox. Scripts dev/build dùng --webpack, build thành công.
-- TypeScript latest 7 chưa được typescript-eslint hỗ trợ; đã chọn 5.9. ESLint 9 tương thích nhưng npm báo hết hỗ trợ; cần đánh giá nâng cùng plugin sau, không mặc định lỗi đã hết.
-- Đã khởi động lại server bằng `npm run dev` và xác minh trang chủ trả HTTP 200, có nội dung Dashboard. Server chạy tại http://127.0.0.1:3000 trong phiên terminal. Cấu hình `agentRules: false` để Next.js giữ nguyên AGENTS của dự án khi chạy dev.
-- Không có DB/Auth/migration/AI thật hoặc deployment. Chưa xác minh credentials. G1 editor nhập tổng, chưa quy đổi khẩu phần nghiệp vụ.
+- Docker Desktop phải bật trước `npx supabase start`. Dự án `hu-tai-chinh` của người dùng tự chạy cùng Docker ở 543xx; không dừng nó.
+- Git `core.autocrlf` đổi file sang CRLF khi checkout; thay thế chuỗi nhiều dòng bằng script cần xử lý `\r\n`.
+- Một `next dev` khác (PID 30348) đang chạy ở cổng 3000 trong thư mục này; `npm run test:e2e` cần tắt nó hoặc dùng config trỏ 3000.
+- TypeScript 5.9 vì typescript-eslint chưa hỗ trợ 7; ESLint 9 sắp hết hỗ trợ.
 
 ## Việc tiếp theo
 
-1. Đã kiểm tra UI và sửa 3 lỗi (xem mục Kiểm tra). Còn lỗi nhỏ tùy chọn: xóa món không hỏi xác nhận, dropdown "Chọn món mẫu" trống khi mở từ ?food=. Chưa thử điện thoại thật/Safari.
-2. Đã commit G1, review độc lập và commit sửa review trên `feature/app-shell`. Người dùng cho phép push: đã push `feature/app-shell` lên origin (tracking `origin/feature/app-shell`, tới `4178854`), 22/11/2026, Claude. Ghi chú này là thay đổi HANDOFF chưa commit. CHƯA merge main. Tiếp theo: xin phép merge (trực tiếp hoặc qua PR GitHub) và push main.
-3. Chỉ merge main sau khi giai đoạn đạt kiểm tra cần thiết và có quyền tạo commit/push tương ứng. Chưa merge vì thiếu visual verification.
-4. Tiếp tục G2 trên feature/auth-database sau nền được chốt: Supabase, auth, migrations/RLS và tests owner. Kế hoạch đã duyệt; không hỏi lại phạm vi MVP.
+0. Ưu tiên mới (chat phụ 22/11/2026, người dùng chọn "làm cách 4"): sau G2 làm G2b "Ghi nhanh" trên `feature/ai-quick-log` (PRD 4.2a, PLAN G2b), trước G3. Cần người dùng tự điền `OPENAI_API_KEY`/`OPENAI_MODEL` vào `.env.local`; chưa xác minh key là platform API.
+1. Xin phép commit G2 trên `feature/auth-database` (đề xuất `feat(auth-database): add Supabase auth, schema and RLS`), chạy agent review độc lập, sửa theo review, rồi xin phép push và merge main.
+2. G3 (sau G2b) trên `feature/food-library`: Food Library CRUD/tìm kiếm không dấu/yêu thích/gần đây với bảng `foods`; module tính khẩu phần decimal (`src/lib/nutrition`) dùng chung với editor và khớp logic hệ số của `save_meal`; editor override rõ ràng; A01/A07.
+3. G4–G5 chuyển nhật ký, Dashboard, cân nặng sang database (RPC `save_meal` đã sẵn).
 
-## Ghi nhận từ chat phụ
-
-### Bổ sung từ chat phụ — quy ước đóng góp, 22/11/2026
-
-- Người dùng duyệt tạo quy ước code/Git trong chat phụ. Đã thêm `CONTRIBUTING.md` và liên kết từ `AGENTS.md`; Claude đọc AGENTS sẽ nhận hướng dẫn này.
-- Phạm vi chat phụ chỉ là tài liệu; không code app, đổi branch, stage, commit, push hay merge. Không thay tiến độ triển khai của chat chính.
-- Khi đọc workspace cho thay đổi này: branch là `feature/app-shell`; AGENTS/PLAN đã có thay đổi chưa commit, package.json là file mới của chat chính. Giữ nguyên các thay đổi đó.
-- PLAN và AGENTS hiện ghi kế hoạch đã được duyệt; các mục trạng thái cũ bên trên chưa phản ánh đầy đủ tiến độ chat chính. Phiên triển khai chính cần cập nhật chúng khi ghi checkpoint.
-- Kiểm tra cho phần tài liệu: rà quy ước với PLAN/AGENTS, kiểm tra liên kết local và whitespace diff; không chạy build/test app vì không thay code/cấu hình.
-- Việc tiếp theo: áp dụng CONTRIBUTING khi triển khai và bàn giao; commit/push tài liệu mới vẫn cần người dùng cho phép. Chưa cài hooks/commitlint/CI.
-
-> Tiếp tục dự án Calories Tracker trong thư mục này. Đọc AGENTS.md, docs/HANDOFF.md, PRD.md, CONTEXT.md và docs/PLAN.md nếu có. Đối chiếu trạng thái thực tế, tiếp tục mục “Việc tiếp theo” trong phạm vi đã được duyệt; không làm lại phần đã xong. Nếu kế hoạch chưa chốt thì chỉ lập kế hoạch, chưa code. Cập nhật HANDOFF sau từng phần việc để Codex hoặc Claude tiếp quản được.
+> Tiếp tục dự án Calories Tracker trong thư mục này. Đọc AGENTS.md, docs/HANDOFF.md, PRD.md, CONTEXT.md và docs/PLAN.md nếu có. Đối chiếu trạng thái thực tế, tiếp tục mục “Việc tiếp theo” trong phạm vi đã được duyệt; không làm lại phần đã xong. Cập nhật HANDOFF sau từng phần việc để Codex hoặc Claude tiếp quản được.

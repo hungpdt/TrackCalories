@@ -78,6 +78,16 @@ Tìm “Phở bò” → chọn bản ghi/khẩu phần → chỉnh lượng, kc
 - Cho phép thêm/bỏ món trong bản nháp. Chỉnh nguyên liệu không tự thay đổi dinh dưỡng một cách âm thầm: người dùng chọn tính lại hoặc sửa tay, rồi xác nhận.
 - AI thất bại, hết hạn mức hoặc mất mạng: giữ phần đã nhập, cho nhập thủ công/thử lại; không tạo bữa rỗng hay trùng.
 
+### 4.2a Màn "Ghi nhanh" (cập nhật 22/11/2026)
+
+Quyết định từ chat phụ của người dùng ngày 22/11/2026 (người dùng chọn "làm cách 4"), được chuyển sang qua phiên Claude khác:
+
+- Add Meal mặc định là một màn "Ghi nhanh": chụp/chọn một hoặc nhiều ảnh, cộng ô ghi chú gõ hoặc nói (gram, thành phần, cách nấu). Gửi một request tới server; AI trả bản nháp nhiều món (gram, kcal, P/C/F, giả định, món cần kiểm tra).
+- Gram người dùng ghi/nói được ưu tiên hơn ước lượng từ ảnh. Voice dùng Browser Speech Recognition điền vào ô ghi chú, sửa được trước khi gửi.
+- Bản nháp mở trong editor chung để sửa rồi mới lưu (qua `save_meal`). AI không tự lưu.
+- Nhập thủ công là đường dự phòng; quét nhãn và kho món là lựa chọn phụ trên cùng màn.
+- Giới hạn số lần gọi theo tài khoản, số ảnh và kích thước ảnh; key OpenAI chỉ ở server (`OPENAI_API_KEY`, `OPENAI_MODEL` trong `.env.local` do người dùng tự điền).
+
 ### 4.3 Scanner nhãn dinh dưỡng
 
 1. Chụp/tải ảnh nhãn; phân biệt rõ với chế độ ảnh món ăn.
@@ -175,6 +185,8 @@ Giới hạn kích thước/định dạng ảnh, thời gian request, số lầ
 10. Kiểm thử các tiêu chí dưới đây, hoàn thiện README và chuẩn bị cấu hình Vercel. Chỉ triển khai lên tài khoản thật khi được người dùng giao triển khai; không tự tạo chi phí hay công bố ứng dụng trong nhiệm vụ tài liệu.
 
 Các bước là thứ tự phát triển, không phải lý do loại scanner/ảnh/voice khỏi MVP.
+
+Cập nhật 22/11/2026: người dùng đưa màn "Ghi nhanh" (bước 8–9, ảnh + ghi chú + voice trong một request) cùng lưu nhật ký tối thiểu lên ngay sau bước 3, trước Food Library, biểu đồ và scanner. Xem mục 4.2a.
 
 ## 10. Tiêu chí nghiệm thu và kiểm thử
 

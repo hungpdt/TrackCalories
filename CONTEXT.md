@@ -97,6 +97,10 @@ Yêu cầu hiện tại đã chuyển từ tạo tài liệu ban đầu sang l�
 
 Khi bắt đầu phiên mới, dùng prompt chuyển phiên trong HANDOFF. Mỗi agent phải cập nhật checkpoint sau phần việc đáng kể và trước khi kết thúc; không chờ hết token mới bàn giao. Khi người dùng chốt kế hoạch, ghi lại phạm vi đã duyệt để agent sau không hỏi lại.
 
-## 10. Repository và quyền commit/push — 22/11/2026
+## 10. Ưu tiên "Ghi nhanh" — 22/11/2026
+
+Quyết định từ chat phụ của người dùng ngày 22/11/2026 (người dùng chọn "làm cách 4"), được chuyển sang qua phiên Claude khác. Lý do người dùng nêu: nhập từng món một bất tiện. Gộp ảnh + ghi chú + voice thành một màn, AI trả bản nháp nhiều món, người dùng sửa rồi lưu; thủ công là dự phòng. Làm ngay sau G2, trước kho món/biểu đồ/scanner. Người dùng nói đã có OpenAI API key trả phí; chưa xác minh đó là key platform API (gói ChatGPT Plus không gồm quyền gọi API). Chi tiết ở PRD mục 4.2a, PLAN dòng G2b.
+
+## 11. Repository và quyền commit/push — 22/11/2026
 
 Người dùng cung cấp `https://github.com/hungpdt/TrackCalories.git` và cho phép khởi tạo Git local, gắn remote. Phải hỏi người dùng trước khi commit và push; có thể xin phép cả hai trong cùng một yêu cầu với nội dung cụ thể, nhưng không được tự suy ra quyền từ yêu cầu code. Quy tắc áp dụng cho cả Codex và Claude. Việc thiết lập Git không phải phê duyệt kế hoạch triển khai ứng dụng.

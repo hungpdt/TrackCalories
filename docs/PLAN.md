@@ -27,12 +27,13 @@ Thực hiện tuần tự; mỗi giai đoạn cập nhật HANDOFF và báo kế
 | --- | --- | --- |
 | G0 — Chốt thiết kế | Duyệt kế hoạch, giả định, schema; ghi rõ phạm vi cho phép | ĐÃ DUYỆT ngày 22/11/2026 |
 | G1 — Khung giao diện | Khởi tạo project, sáu trang, điều hướng mobile, component form/card, loading/empty/error; mock có nhãn; README/env example | Chạy local, build/typecheck/lint đạt; kiểm tra mobile/desktop; phần giao diện A15 |
-| G2 — Auth và database | Migrations, constraints/indexes/RLS, session server, hồ sơ, nền tảng test DB và RPC giao dịch | Đăng nhập/đăng xuất, dữ liệu thật; test hai tài khoản và liên kết chéo bị chặn; nền A10/A14 |
+| G2 — Auth và database | Migrations, constraints/indexes/RLS, session server, hồ sơ, nền tảng test DB và RPC giao dịch | Đăng nhập/đăng xuất, dữ liệu thật; test hai tài khoản và liên kết chéo bị chặn; nền A10/A14. ĐÃ CODE 22/11/2026 trên feature/auth-database, chờ review/merge |
+| G2b — Ghi nhanh AI (ưu tiên mới 22/11/2026) | Màn "Ghi nhanh": nhiều ảnh + ghi chú gõ/nói → một API server (OpenAI, structured output, Zod) → bản nháp nhiều món → editor chung → `save_meal`; nhật ký tối thiểu đọc từ database; giới hạn lượt gọi/ảnh; thủ công là dự phòng | A08/A13/A14 cho text/ảnh/voice; gram người dùng ưu tiên hơn ước lượng ảnh; không lưu khi chưa xác nhận; mock trong CI, thử thật khi có key |
 | G3 — Thư viện và khẩu phần | CRUD/tìm kiếm/yêu thích/gần đây; module tính decimal; editor dùng chung, override rõ ràng | A01/A07, unit test quy đổi và validation; dữ liệu tồn tại sau reload |
 | G4 — Nhật ký | Thêm thủ công/thư viện, sửa/xóa bữa và từng món; snapshot; transaction, retry/idempotency | A02/A03/A09; không lưu nửa bữa hoặc tạo trùng; lịch sử độc lập thư viện |
 | G5 — Dashboard, mục tiêu, cân nặng | Tổng theo ngày, thiếu/vượt mục tiêu, mục tiêu có hiệu lực, CRUD cân nặng và biểu đồ | A11/A12; tổng từ item đúng, không dời ngày cũ khi đổi múi giờ |
 | G6 — Scanner | API ảnh nhãn, chọn cột/cơ sở, dữ liệu thiếu, chuyển kJ, review và lưu qua editor chung | A04–A06; fixture nhãn nhiều cột/mờ; kiểm tra thật khi có key |
-| G7 — AI text/ảnh và voice | API phân tích riêng từng chế độ; transcript có thể sửa; timeout/rate limit/fallback | A08/A13/A14; không có đường lưu bỏ qua xác nhận; mock CI và thử thật được báo riêng |
+| G7 — AI text/ảnh và voice (phần lớn chuyển lên G2b; còn lại hoàn thiện/fallback) | API phân tích riêng từng chế độ; transcript có thể sửa; timeout/rate limit/fallback | A08/A13/A14; không có đường lưu bỏ qua xác nhận; mock CI và thử thật được báo riêng |
 | G8 — Nghiệm thu | Rà A01–A15, kiểm thử toàn luồng, accessibility cơ bản, README setup/deploy | Build/typecheck/lint và test quan trọng đạt; ghi rõ phần chưa kiểm chứng; chỉ deploy khi được giao |
 
 ## 3. Cấu trúc project dự kiến
@@ -106,6 +107,8 @@ ID dùng UUID; thời gian hệ thống dùng timestamptz; ngày nghiệp vụ d
 | weight_logs | id, user_id, logged_date, weight_kg, note?, created_at, updated_at. Unique(user_id,logged_date), cân nặng hữu hạn > 0 |
 | mutation_requests (kỹ thuật) | user_id, request_id, operation, payload_hash, result_json, created_at; PK(user_id,request_id). Giữ kết quả retry thao tác lưu, không chứa secrets |
 
+Triển khai G2 (migration `20261122120000_init_schema.sql`): profiles thêm cột hồ sơ onboarding (height_cm, age_years, sex_for_formula, body_fat_pct, activity_level, món quen/yêu thích/dị ứng); goals thêm goal_type `recomposition` và weekly_adjustment_kcal; RPC `save_profile_goal` lưu hồ sơ + mục tiêu + cân nặng trong một transaction. Supabase local dùng cổng 554xx.
+
 `mutation_requests` bổ sung cho yêu cầu idempotency, không phải tính năng sản phẩm mới. `result_json` chỉ lưu ID/revision/trạng thái cần trả lại. Trong MVP giữ bản ghi để retry không tái tạo bữa đã xóa; chưa tự dọn khi chưa có chính sách hết hạn rõ ràng.
 
 ### Khẩu phần và dữ liệu thiếu
@@ -168,4 +171,4 @@ Mock AI trong CI không chứng minh AI thật hoạt động. Ghi rõ lệnh/k�
 
 ## 8. Nhánh Git
 
-`main` là nhánh ổn định. Tạo nhánh từ main đã cập nhật khi bắt đầu từng phần, tránh tạo trước nhiều nhánh từ nền cũ: `feature/app-shell`, `feature/auth-database`, `feature/food-library`, `feature/meal-logging`, `feature/dashboard-goals-weight`, `feature/label-scanner`, `feature/ai-voice`, `feature/mvp-validation`. Mỗi nhánh phải đạt kiểm tra của giai đoạn rồi mới merge vào main. Trước commit và push trình phạm vi/diff, kết quả kiểm tra và hỏi người dùng. Không force-push.
+`main` là nhánh ổn định. Tạo nhánh từ main đã cập nhật khi bắt đầu từng phần, tránh tạo trước nhiều nhánh từ nền cũ: `feature/app-shell`, `feature/auth-database`, `feature/ai-quick-log` (G2b), `feature/food-library`, `feature/meal-logging`, `feature/dashboard-goals-weight`, `feature/label-scanner`, `feature/ai-voice`, `feature/mvp-validation`. Mỗi nhánh phải đạt kiểm tra của giai đoạn rồi mới merge vào main. Trước commit và push trình phạm vi/diff, kết quả kiểm tra và hỏi người dùng. Không force-push.
