@@ -1,0 +1,13 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { Search, Heart, Utensils, Plus } from "lucide-react";
+import { useDemo } from "@/components/demo-provider";
+import { PageHeading, EmptyState } from "@/components/ui/shared";
+import { formatNumber } from "@/lib/demo/data";
+const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+export function FoodLibrary() {
+  const { foods, setFoods } = useDemo(); const [query, setQuery] = useState(""); const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const filtered = foods.filter(food => normalize(food.name).includes(normalize(query)) && (!favoritesOnly || food.favorite));
+  return <><PageHeading eyebrow="MÓN QUEN, GHI NHANH" title="Kho món ăn" description="Những món bạn yêu thích, sẵn sàng cho bữa tiếp theo." action={<Link className="button" href="/add-meal"><Plus size={18} /> Nhập món thủ công</Link>} /><div className="filter-bar"><label className="search-field"><Search size={19} /><input aria-label="Tìm món ăn" placeholder="Tìm món ăn, thử “pho bo”…" value={query} onChange={event => setQuery(event.target.value)} /></label><div className="segmented"><button aria-pressed={!favoritesOnly} onClick={() => setFavoritesOnly(false)}>Tất cả</button><button aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(true)}><Heart size={16} /> Yêu thích</button></div></div><p className="muted small library-caption">{filtered.length} món minh họa · Dinh dưỡng là ước tính cho khẩu phần mẫu</p><div className="food-grid">{filtered.map(food => <article key={food.id} className="card food-card"><div className="food-card-top"><span className="food-symbol"><Utensils size={25} /></span><button className={`icon-button favorite ${food.favorite ? "selected" : ""}`} aria-label={`${food.favorite ? "Bỏ yêu thích" : "Yêu thích"} ${food.name}`} aria-pressed={food.favorite} onClick={() => setFoods(current => current.map(item => item.id === food.id ? { ...item, favorite: !item.favorite } : item))}><Heart size={20} fill={food.favorite ? "currentColor" : "none"} /></button></div><span className="small muted">{food.category}</span><h2>{food.name}</h2><p className="muted">{food.serving}</p><div className="food-nutrients"><strong>{formatNumber(food.kcal)} <small>kcal</small></strong><span>P {formatNumber(food.protein)} · C {formatNumber(food.carbs)} · F {formatNumber(food.fat)} g</span></div><Link className="button secondary full-width" href={`/add-meal?food=${food.id}`}><Plus size={17} /> Thêm vào bữa</Link></article>)}</div>{!filtered.length && <section className="card"><EmptyState title="Chưa tìm thấy món" detail="Thử tên khác hoặc chuyển sang tất cả món ăn." /></section>}</>;
+}

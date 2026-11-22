@@ -39,7 +39,7 @@ Nguồn chính: [So sánh model và chọn model code app](chatgpt-conversation:
 Các chi tiết sau được bổ sung để Codex có thể lập kế hoạch thực tế; xem PRD để biết đầy đủ:
 
 - App Router, email/password Auth, metric, Asia/Ho_Chi_Minh mặc định, một weight log/ngày, bốn loại bữa.
-- Người dùng nhập mục tiêu kcal/P/C/F; chưa xây công thức TDEE hay tự đổi mục tiêu bằng AI.
+- Quyết định mới 22/11/2026: người dùng muốn vào app là nhập hồ sơ và tính calories/macro theo vận động, mục tiêu và mức thay đổi năng lượng theo tuần. Có món yêu thích, món thường ăn, dị ứng và giao diện điện thoại. Kết quả được xem trước và do người dùng lưu.
 - Voice ưu tiên Browser Speech Recognition và text fallback; server transcription chỉ khi cần mở rộng hỗ trợ.
 - Ảnh không giữ lâu dài mặc định; nếu giữ phải private. Không tự seed dữ liệu dinh dưỡng chưa có nguồn vào tài khoản thật.
 - Schema chi tiết, validation, transaction/idempotency, phiên bản mục tiêu theo ngày và kế hoạch test là đề xuất kỹ thuật của tài liệu bàn giao.

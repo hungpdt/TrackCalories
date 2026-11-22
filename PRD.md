@@ -44,7 +44,8 @@ Ngoài phạm vi MVP: cộng đồng, thương mại/thu phí, barcode, đồng 
 - Web responsive; chưa cần native app. Next.js App Router; chọn phiên bản ổn định tương thích tại lúc khởi tạo, không tự cố định phiên bản cũ.
 - Supabase email/password là cách đăng nhập mặc định; OAuth tùy chọn sau. Dù dùng cá nhân vẫn áp dụng phân quyền từng người dùng.
 - Đơn vị metric: kg, cm, g, ml; khẩu phần tùy đặt tên như tô, chén, hộp. Múi giờ mặc định Asia/Ho_Chi_Minh và có thể chỉnh.
-- Mục tiêu kcal/P/C/F do người dùng nhập. Không suy ra mục tiêu sức khỏe hay tự tính TDEE trong MVP. Không lấy số đo từ cuộc chat khác làm giá trị thật.
+- Thiết lập lần đầu hỏi cân nặng, chiều cao, tuổi và giới tính dùng cho công thức, tỉ lệ mỡ tùy chọn, vận động, mục tiêu và mức điều chỉnh kcal/tuần. Người dùng xem, chỉnh và xác nhận mục tiêu ước tính. Mục tiêu gồm giảm cân, tăng cân, tăng cơ giảm mỡ và duy trì. Không lấy số đo từ cuộc chat khác làm giá trị thật.
+- Hiện kết quả duy trì, mức nạp, thâm hụt/thặng dư theo ngày và tuần cùng gram protein, carb, fat. Ghi rõ công thức, giả định và giới hạn. Hỏi món thường ăn, món yêu thích và dị ứng. Gợi ý ưu tiên món quen, chỉ gợi ý món khi có cơ sở kiểm tra dị ứng hoặc khi người dùng không khai báo dị ứng.
 - Một bản ghi cân nặng/ngày; nhập lại ngày đã có thì đề nghị cập nhật. Loại bữa: sáng, trưa, tối, phụ.
 - Voice dùng Browser Speech Recognition khi khả dụng, có sửa transcript và nhập text dự phòng. Nếu cần voice trên trình duyệt không hỗ trợ, triển khai transcription phía server như phần mở rộng kỹ thuật, không giả vờ rằng voice luôn hoạt động.
 - Ảnh dùng để phân tích, không lưu lâu dài mặc định. Nếu sau này cần giữ ảnh, dùng private storage và URL hết hạn.
@@ -52,7 +53,7 @@ Ngoài phạm vi MVP: cộng đồng, thương mại/thu phí, barcode, đồng 
 
 ## 4. Luồng sử dụng và sáu màn hình
 
-Đăng nhập → thiết lập mục tiêu (có thể bỏ qua) → thêm bữa → xem/sửa bản nháp → xác nhận lưu → Dashboard cập nhật.
+Thiết lập mục tiêu → xem và xác nhận kết quả → thêm bữa → xem/sửa bản nháp → xác nhận lưu → Dashboard cập nhật. Bản local cho phép thiết lập trước khi có Auth, lưu trong trình duyệt theo lựa chọn người dùng. Khi có Auth, gắn hồ sơ theo tài khoản và ghi nhận mục tiêu có ngày hiệu lực.
 
 | Màn hình | Nội dung và hành động |
 | --- | --- |

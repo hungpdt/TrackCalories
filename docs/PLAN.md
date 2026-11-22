@@ -1,7 +1,7 @@
 # Kế hoạch Calories Tracker
 
-Ngày: 22/11/2026. Trạng thái: ĐỀ XUẤT — CHỜ NGƯỜI DÙNG DUYỆT.
-Nguồn yêu cầu: `../PRD.md`. Chưa cho phép khởi tạo hoặc code app.
+Ngày: 22/11/2026. Trạng thái: ĐÃ ĐƯỢC DUYỆT TRIỂN KHAI ngày 22/11/2026.
+Nguồn yêu cầu: `../PRD.md`. Người dùng: “okay. sau đó hãy bắt đầu triển khai kế hoạch”, yêu cầu feature branch riêng và main ổn định. Được phép code; commit/push tiếp theo vẫn cần hỏi trước.
 
 ## 1. Phạm vi và lựa chọn đề xuất
 
@@ -14,7 +14,7 @@ Các mặc định đề nghị duyệt cùng kế hoạch:
 - Web responsive ưu tiên điện thoại; đăng nhập email/password.
 - kg/cm/g/ml, múi giờ mặc định Asia/Ho_Chi_Minh; ngày bữa ăn do người dùng chọn.
 - Bốn loại bữa sáng/trưa/tối/phụ; một bản ghi cân nặng/ngày.
-- Người dùng tự nhập mục tiêu; không tự tính TDEE hay nhập sẵn số đo.
+- Theo cập nhật 22/11/2026, bổ sung onboarding ngay trong G1: hồ sơ tự nhập, ước tính mức duy trì/nạp và macro, lưu sau xác nhận trên trình duyệt. G2/G5 chuyển sang hồ sơ theo tài khoản và mục tiêu theo ngày hiệu lực. Bổ sung cột/bảng hồ sơ theo schema khi triển khai migration.
 - Voice dùng nhận dạng giọng nói của trình duyệt, sửa transcript rồi gửi như text. Có text fallback; nếu cần voice trên thiết bị không hỗ trợ thì bổ sung transcription server sau khi kiểm tra thiết bị và chi phí.
 - Ảnh chỉ phục vụ phân tích, không lưu lâu dài mặc định.
 - Chưa deploy trong phạm vi duyệt kế hoạch; deployment thực hiện khi người dùng giao.
@@ -25,7 +25,7 @@ Thực hiện tuần tự; mỗi giai đoạn cập nhật HANDOFF và báo kế
 
 | Giai đoạn | Công việc và đầu ra | Điều kiện hoàn thành |
 | --- | --- | --- |
-| G0 — Chốt thiết kế | Duyệt kế hoạch, giả định, schema; ghi rõ phạm vi cho phép | Có chỉ đạo duyệt của người dùng; hiện CHƯA có |
+| G0 — Chốt thiết kế | Duyệt kế hoạch, giả định, schema; ghi rõ phạm vi cho phép | ĐÃ DUYỆT ngày 22/11/2026 |
 | G1 — Khung giao diện | Khởi tạo project, sáu trang, điều hướng mobile, component form/card, loading/empty/error; mock có nhãn; README/env example | Chạy local, build/typecheck/lint đạt; kiểm tra mobile/desktop; phần giao diện A15 |
 | G2 — Auth và database | Migrations, constraints/indexes/RLS, session server, hồ sơ, nền tảng test DB và RPC giao dịch | Đăng nhập/đăng xuất, dữ liệu thật; test hai tài khoản và liên kết chéo bị chặn; nền A10/A14 |
 | G3 — Thư viện và khẩu phần | CRUD/tìm kiếm/yêu thích/gần đây; module tính decimal; editor dùng chung, override rõ ràng | A01/A07, unit test quy đổi và validation; dữ liệu tồn tại sau reload |
@@ -164,4 +164,8 @@ Mock AI trong CI không chứng minh AI thật hoạt động. Ghi rõ lệnh/k�
 
 ## 7. Chốt kế hoạch và tiếp quản
 
-Chờ người dùng duyệt kế hoạch và các mặc định mục 1. Chưa có xác nhận, chưa có code. Khi nhận duyệt, ghi ngày/phạm vi vào đây và HANDOFF rồi bắt đầu G1; không hỏi lại cùng phê duyệt. Khi chuyển Codex/Claude, tiếp tục giai đoạn đang dở, đọc checkpoint và kiểm tra file thực tế.
+Đã nhận duyệt triển khai ngày 22/11/2026, bắt đầu G1 trên `feature/app-shell`. Không hỏi lại phê duyệt kế hoạch. Commit/push phải xin phép cho nội dung cụ thể. Khi chuyển Codex/Claude, tiếp tục giai đoạn đang dở, đọc checkpoint và kiểm tra file thực tế.
+
+## 8. Nhánh Git
+
+`main` là nhánh ổn định. Tạo nhánh từ main đã cập nhật khi bắt đầu từng phần, tránh tạo trước nhiều nhánh từ nền cũ: `feature/app-shell`, `feature/auth-database`, `feature/food-library`, `feature/meal-logging`, `feature/dashboard-goals-weight`, `feature/label-scanner`, `feature/ai-voice`, `feature/mvp-validation`. Mỗi nhánh phải đạt kiểm tra của giai đoạn rồi mới merge vào main. Trước commit và push trình phạm vi/diff, kết quả kiểm tra và hỏi người dùng. Không force-push.
