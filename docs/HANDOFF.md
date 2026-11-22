@@ -4,12 +4,26 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
 ## Trạng thái và quyền
 
-- Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code. Người dùng yêu cầu “code tiếp các tính năng”.
+- Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code. Người dùng yêu cầu “code tiếp các tính năng”, rồi “triển khai G2b trên nhánh riêng feature/ai-quick-log”.
 - G1 HOÀN TẤT và đã merge: `main` = `07b6d9f` (fast-forward từ `feature/app-shell`, đã push origin với sự cho phép của người dùng).
-- G2 (Auth và database) ĐÃ CODE và ĐÃ COMMIT (người dùng cho phép) trên `feature/auth-database` (tạo từ `main` `07b6d9f`), commit `feat(auth-database): add Supabase auth, schema and RLS`. CHƯA push, CHƯA review độc lập. Phải hỏi trước mỗi commit/push; người dùng muốn agent riêng review trước push.
+- G2 (Auth và database) ĐÃ COMMIT trên `feature/auth-database`: `090bab4` + sửa review `c196eb2`. Đã review độc lập. CHƯA push, CHƯA merge main.
+- G2b (Ghi nhanh AI) ĐÃ COMMIT (người dùng cho phép) trên `feature/ai-quick-log` (`feat(ai-quick-log): add AI quick capture and real journal`), **tách từ `feature/auth-database` `c196eb2`** vì G2 chưa merge (phụ thuộc: merge G2 trước). CHƯA push, CHƯA review độc lập, CHƯA thử OpenAI thật (máy chưa có key; `.env.local` đang `AI_PROVIDER=mock`).
+- Phải hỏi trước mỗi commit/push; người dùng muốn agent riêng review trước push.
 - Người dùng chọn Supabase local bằng Docker. Chưa có project Supabase cloud, chưa deploy Vercel.
 
-## G2 — đã triển khai (chưa commit)
+## G2b — Ghi nhanh AI
+
+- Migration `20261122150000_ai_usage.sql`: bảng `ai_usage` (RLS, client không truy cập) + RPC `consume_ai_quota(limit)` SECURITY DEFINER, đếm nguyên tử theo ngày ở múi giờ hồ sơ, giới hạn kẹp 1–500.
+- `src/lib/ai/draft.ts`: schema Zod cho output AI (dinh dưỡng nullable) và `sanitizeDraft` (âm/vô hạn/quá lớn → null + cần kiểm tra, cắt chuỗi, ≤ 20 món); `saveMealSchema` cho lưu (bốn giá trị bắt buộc).
+- `src/lib/ai/analyze.ts` (server-only): OpenAI SDK 7.62 `responses.parse` + `zodTextFormat`, `store: false`, timeout 60 s, maxRetries 1; prompt coi ghi chú/ảnh là dữ liệu, gram người dùng ưu tiên, null khi không ước được; map lỗi (key sai, timeout, 429, hết hạn mức thanh toán, output sai). `AI_PROVIDER=mock` trả bản nháp giả lập (đọc "200g cơm", mỗi ảnh thêm món thiếu số).
+- `POST /api/ai/quick-log`: cần đăng nhập, ≤ 4 ảnh JPEG/PNG/WebP, 3 MB/ảnh, 8 MB tổng, ghi chú ≤ 1000 ký tự, HEIC báo đổi định dạng, kiểm tra cấu hình trước khi trừ lượt, log chỉ mã lỗi.
+- UI `src/features/quick-log/`: màn Ghi nhanh (chụp/chọn ảnh, thu nhỏ trên máy, xem trước/xóa; ghi chú + nút Nói bằng Web Speech API vi-VN; thông báo gửi dữ liệu tới OpenAI), editor chung (ô trống = chưa biết, bắt buộc bổ sung; nút tính lại theo gram; giả định AI; thêm/bỏ món; tổng bữa; focus tới tiêu đề), server action `saveMeal` (có gram → cơ sở 100 g suy từ tổng xác nhận; không gram → 1 khẩu phần) qua `save_meal`, `request_id` giữ nguyên khi nội dung không đổi. Nhập thủ công cùng editor; "Thêm vào bữa" từ Kho món minh họa điền sẵn kèm giả định "số liệu minh họa". Bỏ `meal-editor.tsx` mock.
+- Nhật ký (`/history?date=`) và Dashboard (`/?date=`) đọc bữa thật từ database; Dashboard dùng mục tiêu hiệu lực của ngày xem (null → chỉ hiện tổng); cân nặng gần nhất từ `weight_logs`; xóa bữa có xác nhận. Banner "Dữ liệu minh họa" chỉ còn ở /foods và /weight.
+- Kiểm tra (Claude, 22/11/2026): lint, typecheck, build PASS; `npm test` 38/38 (thêm `tests/unit/draft.test.ts`, bắt được lỗi needs_review tính trên số chưa chuẩn hóa, đã sửa); `npm run test:db` 35/35 (thêm quota); Playwright 16/16 chạy trên `next start` cổng 3100 với `AI_PROVIDER=mock` (`tests/e2e/quick-log.spec.ts`: ảnh + ghi chú → 3 món, chặn lưu khi thiếu số, tính lại theo gram, lưu → nhật ký 700 kcal, reload còn; thủ công từ chối "1.200", lưu, xóa; Dashboard hiện bữa và còn lại theo mục tiêu). Ảnh Playwright mobile màn chụp và editor: bố cục ổn. Bundle trình duyệt không chứa SDK/key OpenAI hay key Supabase bí mật.
+- Dev server cổng 3000 (PID 30348, không do Claude mở) bị kẹt cache webpack sau khi xóa `meal-editor.tsx` (500 mọi trang): cần người dùng khởi động lại `npm run dev`. Không phải lỗi code; build production chạy đúng.
+- CHƯA xác minh: OpenAI thật (cần key platform + `OPENAI_MODEL`, xóa `AI_PROVIDER=mock`), chất lượng ước tính món Việt, voice và camera trên điện thoại thật, HEIC trên Safari iOS, thông báo lỗi khi key sai/hết hạn mức (chỉ đọc code, chưa chạy).
+
+## G2 — đã triển khai
 
 - Dependencies: `@supabase/supabase-js` 2.119, `@supabase/ssr` 0.12, `zod` 4.6, `server-only`; devDependency `supabase` CLI 3.2. `npm audit`: 0 lỗ hổng.
 - `supabase/config.toml` (`supabase init`): project_id `tcgm`; tắt realtime/storage/edge runtime/analytics (MVP chưa dùng); **đổi toàn bộ cổng sang 554xx** vì máy có dự án Supabase local khác (`hu-tai-chinh`) đang chiếm 543xx. API `127.0.0.1:55421`, DB `55422`, Studio `55423`.
@@ -52,8 +66,8 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
 ## Việc tiếp theo
 
-0. Ưu tiên mới (chat phụ 22/11/2026, người dùng chọn "làm cách 4"): sau G2 làm G2b "Ghi nhanh" trên `feature/ai-quick-log` (PRD 4.2a, PLAN G2b), trước G3. Cần người dùng tự điền `OPENAI_API_KEY`/`OPENAI_MODEL` vào `.env.local`; chưa xác minh key là platform API.
-1. Xin phép commit G2 trên `feature/auth-database` (đề xuất `feat(auth-database): add Supabase auth, schema and RLS`), chạy agent review độc lập, sửa theo review, rồi xin phép push và merge main.
+0. G2b đã code (xem trên). Tiếp: xin phép commit G2b, review độc lập, người dùng điền key OpenAI để thử thật; sau đó xin phép push/merge G2 rồi G2b vào main.
+1. (đã xong) Commit G2 trên `feature/auth-database` (đề xuất `feat(auth-database): add Supabase auth, schema and RLS`), chạy agent review độc lập, sửa theo review, rồi xin phép push và merge main.
 2. G3 (sau G2b) trên `feature/food-library`: Food Library CRUD/tìm kiếm không dấu/yêu thích/gần đây với bảng `foods`; module tính khẩu phần decimal (`src/lib/nutrition`) dùng chung với editor và khớp logic hệ số của `save_meal`; editor override rõ ràng; A01/A07.
 3. G4–G5 chuyển nhật ký, Dashboard, cân nặng sang database (RPC `save_meal` đã sẵn).
 

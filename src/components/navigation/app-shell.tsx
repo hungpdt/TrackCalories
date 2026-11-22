@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { Activity, LayoutDashboard, BookOpen, CalendarDays, Scale, Settings2, Plus, Sprout, FlaskConical } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 // Khóa localStorage của hồ sơ G1; hồ sơ nay lưu theo tài khoản nên xóa bản cũ khỏi thiết bị.
+// Trang còn dùng dữ liệu minh họa (G3/G5 sẽ chuyển sang database).
+const demoPages = new Set(["/foods", "/weight"]);
 const legacyProfileKey = "tcgm.nutrition-profile.v1";
 const links = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
@@ -27,7 +29,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
     </aside>
     <div className="workspace">
       <header className="topbar"><Link href="/" className="mobile-brand"><Sprout size={22} /> tcgm</Link><span className="topbar-title">Ăn uống có ý thức, mỗi ngày</span><span className="topbar-end"><span className="demo-pill"><FlaskConical size={15} /> Bản xem trước</span><Link href="/settings" className="mobile-settings" aria-label="Cài đặt" aria-current={pathname === "/settings" ? "page" : undefined}><Settings2 size={20} /></Link></span></header>
-      {pathname !== "/" && pathname !== "/settings" && <div className="demo-notice"><strong>Dữ liệu minh họa</strong><span> Các thay đổi trên màn hình này chỉ giữ trong phiên thử nghiệm.</span></div>}
+      {demoPages.has(pathname) && <div className="demo-notice"><strong>Dữ liệu minh họa</strong><span> Các thay đổi trên màn hình này chỉ giữ trong phiên thử nghiệm.</span></div>}
       <main id="main-content" tabIndex={-1}>{children}</main>
     </div>
     <nav className="mobile-nav" aria-label="Điều hướng điện thoại">{links.slice(0, 2).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}<Link href="/add-meal" className="mobile-add" aria-label="Ghi bữa ăn" aria-current={pathname === "/add-meal" ? "page" : undefined}><Plus size={25} /></Link>{links.slice(2, 4).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}</nav>

@@ -1,6 +1,6 @@
 # tcgm — Calories Tracker
 
-Ứng dụng tiếng Việt, ưu tiên điện thoại. Đã có **G1 (khung giao diện)** và **G2 (đăng nhập, database Supabase, RLS)**; chưa phải MVP hoàn chỉnh.
+Ứng dụng tiếng Việt, ưu tiên điện thoại. Đã có **G1 (khung giao diện)**, **G2 (đăng nhập, database Supabase, RLS)** và **G2b (Ghi nhanh bằng AI + nhật ký thật)**; chưa phải MVP hoàn chỉnh.
 
 ## Chạy local
 
@@ -18,7 +18,17 @@ NEXT_PUBLIC_SUPABASE_URL=<API_URL>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<PUBLISHABLE_KEY>
 ```
 
-Không đặt `SECRET_KEY`/`SERVICE_ROLE_KEY` vào `.env.local` hay code app. Sau đó:
+Không đặt `SECRET_KEY`/`SERVICE_ROLE_KEY` vào `.env.local` hay code app.
+
+AI "Ghi nhanh" (chỉ phía server):
+
+```text
+OPENAI_API_KEY=<key từ platform.openai.com>
+OPENAI_MODEL=<model hỗ trợ ảnh + structured output>
+AI_DAILY_LIMIT=30
+```
+
+Chưa có key thì đặt `AI_PROVIDER=mock` để dùng AI giả lập (không gọi mạng); xóa dòng đó khi đã có key. Sau đó:
 
 ```powershell
 npm run dev
@@ -50,7 +60,9 @@ Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại l�
 - **Database:** `profiles`, `goals`, `foods`, `meals`, `meal_items`, `weight_logs`, `mutation_requests` với ràng buộc, index và RLS theo `auth.uid()`. Bữa ăn chỉ ghi qua RPC `save_meal` (một transaction, chống trùng theo `request_id`, phát hiện sửa bản cũ bằng `revision`, tự tính tổng từ cơ sở × hệ số, không tự đổi ml↔g). Xóa món trong thư viện chỉ đặt `food_id` về null, giữ snapshot.
 - **Hồ sơ và mục tiêu:** luồng thiết lập trên trang chủ lưu vào tài khoản qua RPC `save_profile_goal`; server tự tính lại mục tiêu từ hồ sơ. Mục tiêu có hiệu lực từ hôm nay theo múi giờ hồ sơ (mặc định Asia/Ho_Chi_Minh); lưu lại trong cùng ngày thì cập nhật phiên bản của ngày đó, ngày cũ giữ mục tiêu cũ. Cân nặng nhập trong hồ sơ ghi vào nhật ký cân nặng.
 - Mức nạp dưới 1.200 kcal chỉ được hiện cho Duy trì/Tăng, kèm lưu ý hỏi chuyên gia; thâm hụt dưới ngưỡng bị chặn. Ô số chấp nhận "74,5" hoặc "74.5", từ chối dạng hàng nghìn "1.200".
-- **Vẫn là dữ liệu minh họa** (giữ trong bộ nhớ phiên trang, về lại fixture khi tải lại): Dashboard nhật ký, Kho món, Nhật ký, Cân nặng, editor bữa ăn. Các trang này sẽ chuyển sang database ở G3–G5. Scanner, AI và voice chưa kết nối; không có upload ảnh, micro hoặc gửi dữ liệu đến AI.
+- **Ghi nhanh (`/add-meal`):** chụp/chọn tối đa 4 ảnh (thu nhỏ còn cạnh 1600 px JPEG trên máy, ảnh không được lưu) + ghi chú gõ hoặc nói (Web Speech API `vi-VN`, chỉ xin micro khi bấm, sửa được trước khi gửi) → `POST /api/ai/quick-log` (cần đăng nhập; tối đa 3 MB/ảnh, 8 MB tổng, 1000 ký tự; HEIC báo đổi JPEG/PNG; trừ lượt qua RPC `consume_ai_quota`) → OpenAI Responses API với structured output (Zod), `store: false`, timeout 60 s, 1 lần thử lại → bản nháp nhiều món (gram, kcal, P/C/F nullable, giả định, cần kiểm tra). Editor chung: ô trống là chưa biết (bắt buộc bổ sung, không thành 0), đổi gram có nút "Tính lại theo gram", lưu qua `save_meal` với `request_id` cố định cho cùng nội dung. Nhập thủ công dùng cùng editor; Kho món và Quét nhãn hiển thị "sắp có".
+- **Nhật ký và Dashboard** đọc bữa thật từ database theo `?date=`; Dashboard dùng mục tiêu có hiệu lực của ngày đang xem (ngày chưa có mục tiêu chỉ hiện tổng). Xóa bữa có hỏi xác nhận. Sửa bữa đã lưu chưa có (G4).
+- **Vẫn là dữ liệu minh họa** (bộ nhớ phiên trang): Kho món, trang Cân nặng. Quét nhãn chưa có.
 
 ## Môi trường các giai đoạn sau
 

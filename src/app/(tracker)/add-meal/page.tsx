@@ -1,4 +1,11 @@
-import { Suspense } from "react";
-import { MealEditor } from "@/features/meals/meal-editor";
+import { QuickLog } from "@/features/quick-log/quick-log";
+import { emptyItemFromDemoFood } from "@/features/quick-log/prefill";
+import { resolveDay } from "@/features/meals/queries";
+
 export const metadata = { title: "Ghi bữa ăn" };
-export default function Page() { return <Suspense fallback={<p role="status">Đang mở bản nháp…</p>}><MealEditor /></Suspense>; }
+
+export default async function Page({ searchParams }: { searchParams: Promise<{ food?: string }> }) {
+  const { today } = await resolveDay(undefined);
+  const prefill = emptyItemFromDemoFood((await searchParams).food);
+  return <QuickLog today={today} prefill={prefill} />;
+}

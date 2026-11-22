@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useState, useTransition, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dashboard } from "@/features/dashboard/dashboard";
@@ -169,7 +169,9 @@ function SetupForm({ initial, onCancel, onDone }: {
   </section>;
 }
 
-export function FirstRun({ saved, targets }: { saved: ProfileDraft | null; targets: Nutrients | null }) {
+type DashboardData = Omit<ComponentProps<typeof Dashboard>, "targets"> & { targets: Nutrients | null };
+
+export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | null; targets: Nutrients | null; dashboard: DashboardData }) {
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -211,7 +213,7 @@ export function FirstRun({ saved, targets }: { saved: ProfileDraft | null; targe
   const accountNote = <p className="setup-local muted">Hồ sơ và mục tiêu được lưu vào tài khoản của bạn khi bấm lưu. Mục tiêu mới có hiệu lực từ hôm nay, không đổi mục tiêu của các ngày trước.</p>;
 
   if (showDashboard) return <>
-    <Dashboard targets={targets} />
+    <Dashboard {...dashboard} />
     <section className="setup-page home-goals" aria-labelledby="goal-heading">
       <header className="setup-heading">
         <h2 id="goal-heading">Mục tiêu dinh dưỡng của bạn</h2>

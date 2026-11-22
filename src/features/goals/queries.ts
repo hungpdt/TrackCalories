@@ -24,3 +24,12 @@ export async function getProfileAndGoal() {
     draft: draftFromRows(profile, goal, weightRes.data ? Number(weightRes.data.weight_kg) : null),
   };
 }
+
+/** Mục tiêu có hiệu lực ở ngày D: bản có effective_from lớn nhất không vượt D (null nếu chưa có). */
+export async function getTargetsOn(date: string) {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.from("goals").select("*").lte("effective_from", date)
+    .order("effective_from", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error("Không đọc được mục tiêu.");
+  return targetsFromGoal(data);
+}

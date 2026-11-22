@@ -153,3 +153,20 @@ describe("đăng ký", () => {
     expect(res.error).not.toBeNull();
   });
 });
+
+describe("consume_ai_quota", () => {
+  it("đếm theo người dùng, chặn khi hết lượt và không tăng thêm", async () => {
+    const user = await newUser("quota");
+    expect((await user.client.rpc("consume_ai_quota", { p_daily_limit: 2 })).data).toBe(1);
+    expect((await user.client.rpc("consume_ai_quota", { p_daily_limit: 2 })).data).toBe(0);
+    const over = await user.client.rpc("consume_ai_quota", { p_daily_limit: 2 });
+    expect(over.error?.message).toContain("ai_quota_exceeded");
+    expect((await b.client.rpc("consume_ai_quota", { p_daily_limit: 2 })).error).toBeNull();
+    expect((await user.client.from("ai_usage").select("request_count")).error).not.toBeNull();
+  });
+
+  it("khách chưa đăng nhập không gọi được", async () => {
+    const anon = createClient<Database>(url, anonKey, options);
+    expect((await anon.rpc("consume_ai_quota", { p_daily_limit: 5 })).error).not.toBeNull();
+  });
+});

@@ -11,6 +11,8 @@ export default defineConfig({
     command: "npm run dev -- --port 3100",
     url: "http://127.0.0.1:3100",
     timeout: 60_000,
+    // E2E dùng AI giả lập, không gọi OpenAI.
+    env: { AI_PROVIDER: "mock" },
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], channel } },

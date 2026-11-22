@@ -23,7 +23,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "foods": {
+            "ai_usage": {
+                  Row: {
+                    "request_count": number,"updated_at": string,"usage_date": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "request_count"?: number,"updated_at"?: string,"usage_date": string,"user_id": string
+                  }
+                  Update: {
+                    "request_count"?: number,"updated_at"?: string,"usage_date"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"foods": {
                   Row: {
                     "basis_quantity": number,"basis_type": string,"basis_unit": string,"brand": string | null,"carbs_g": number,"created_at": string,"fat_g": number,"id": string,"is_favorite": boolean,"kcal": number,"last_used_at": string | null,"name": string,"protein_g": number,"serving_label": string | null,"serving_mass_g": number | null,"serving_volume_ml": number | null,"source": string,"source_note": string | null,"updated_at": string,"user_id": string
                   }
@@ -139,7 +153,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "save_meal":
+            "consume_ai_quota":
+{ Args: { "p_daily_limit": number }; Returns: number
+                           },
+"save_meal":
 { Args: { "p_expected_revision"?: number,"p_items": Json,"p_meal": Json,"p_meal_id"?: string,"p_request_id": string }; Returns: Json
                            },
 "save_profile_goal":

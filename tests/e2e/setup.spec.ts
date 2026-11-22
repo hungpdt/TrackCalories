@@ -118,23 +118,6 @@ test.describe("đã đăng nhập", () => {
     await expect(page.getByRole("heading", { name: "Thiết lập mục tiêu của bạn" })).toBeVisible();
   });
 
-  test("editor bữa ăn từ chối số dạng hàng nghìn và nhận dấu phẩy thập phân", async ({ page }) => {
-    await page.goto("/add-meal");
-    await page.getByLabel("Tên món").fill("Món thử");
-    await page.getByLabel("Mô tả lượng ăn").fill("1 phần");
-    await page.getByLabel("Calories (kcal)").fill("1.200");
-    await page.getByLabel("Protein (g)").fill("10");
-    await page.getByLabel("Carbs (g)").fill("20");
-    await page.getByLabel("Chất béo (g)").fill("2,5");
-    await page.getByRole("button", { name: "Xác nhận thêm mẫu" }).click();
-    await expect(page.getByText("Không dùng dấu chấm ngăn cách hàng nghìn", { exact: false })).toBeVisible();
-    await expect(page).toHaveURL(/\/add-meal/);
-    await page.getByLabel("Calories (kcal)").fill("1200");
-    await page.getByRole("button", { name: "Xác nhận thêm mẫu" }).click();
-    await expect(page).toHaveURL(/\/history\?date=/);
-    await expect(page.getByText("F 2,5 g", { exact: false })).toBeVisible();
-  });
-
   test("tăng cân và tăng cơ giảm mỡ áp dụng đúng dấu, ẩn món khi có dị ứng", async ({ page }) => {
     await fillBody(page);
     await page.getByRole("combobox", { name: "Mục tiêu", exact: true }).selectOption("gain");
