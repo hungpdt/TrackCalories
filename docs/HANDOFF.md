@@ -93,7 +93,7 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Một `next dev` khác (PID 30348) đang chạy ở cổng 3000 trong thư mục này; `npm run test:e2e` cần tắt nó hoặc dùng config trỏ 3000.
 - TypeScript 5.9 vì typescript-eslint chưa hỗ trợ 7; ESLint 9 sắp hết hỗ trợ.
 
-## Giao diện kiểu thẻ + ảnh món (Claude, 24/11/2026, CHƯA commit)
+## Giao diện kiểu thẻ + ảnh món (Claude, 24/11/2026, ĐÃ COMMIT `9eb024f`)
 
 - Người dùng duyệt thiết kế phỏng theo Cal AI (PLAN mục 7c), yêu cầu thêm: quẹt trái thẻ món để Xóa; ảnh món làm ngay; chuỗi ngày (streak) để sau.
 - Database: migration `20261124150000_meal_photos.sql` (cột `meals.photo_path` có CHECK định dạng `<uuid>/<uuid>.jpg`; grant update riêng cột này + policy chỉ bữa của mình; bucket riêng tư `meal-photos` 2 MB, chỉ JPEG; policy storage theo thư mục `<user_id>/`). `supabase/config.toml` bật `[storage]`. Đã `supabase stop/start` (giữ dữ liệu) + `migration up` local; `gen:types` chạy lại. Cloud: cần bật Storage và áp migration này.
@@ -104,7 +104,7 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Kiểm tra: lint, typecheck PASS; unit 50/50; `test:db` 38/38 (thêm `tests/db/meal-photos.test.ts`: B không đọc/ghi/xóa ảnh hay sửa photo_path của A, ẩn danh không đọc, đường dẫn ngoài thư mục bị chặn, PNG bị chặn, không sửa cột khác); e2e 52 pass / 1 skip (desktop+Pixel 7). Ảnh chụp mobile: Trang chủ, quẹt Xóa, chi tiết có ảnh, menu +. E2E cập nhật theo giao diện mới. Chạy bằng config tạm: `next build` + `next start -p 3100` với `AI_PROVIDER=mock` (vì `next dev` của người dùng đang chạy ở 3000, không cho dev thứ hai).
 - ĐỂ SAU: streak, biểu đồ calo theo tuần ở Tiến độ; thẻ ảnh chưa thử trên điện thoại thật.
 
-## Vòng 2 giao diện (Claude, 24/11/2026, CHƯA commit)
+## Vòng 2 giao diện (Claude, 24/11/2026, ĐÃ COMMIT `9eb024f` trên feature/food-library, người dùng cho phép 25/11; CHƯA push)
 
 - Người dùng yêu cầu: (1) bỏ "Bản xem trước", thay icon streak ngọn lửa; (2) sửa lỗi ảnh; (3) sửa thành phần bữa đã ghi; (4) thanh ngày kéo trái/phải theo tuần; (5) tab Tiến độ làm theo video.
 - (2) Nguyên nhân: ảnh đã upload được nhưng URL là signed URL Supabase `127.0.0.1:55421` → điện thoại không tải được. Sửa: route `src/app/api/meals/[id]/photo/route.ts` tải ảnh qua server (RLS kiểm tra, `Cache-Control: private, max-age=300`); `photoUrl` = `/api/meals/<id>/photo`.
