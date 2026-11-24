@@ -33,7 +33,8 @@ export async function proxy(request: NextRequest) {
     for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
     return redirect;
   };
-  if (!signedIn && !isAuthPage) return redirectTo("/login");
+  // API tự trả 401 JSON; chỉ chuyển hướng trang.
+  if (!signedIn && !isAuthPage && !pathname.startsWith("/api/")) return redirectTo("/login");
   if (signedIn && isAuthPage) return redirectTo("/");
   return response;
 }

@@ -4,15 +4,26 @@ import { todayIn } from "@/lib/dates/today";
 import { requireUser } from "@/lib/supabase/server";
 import type { DayMeal } from "./types";
 
-const isDate = (value: string | undefined): value is string =>
-  Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= "2000-01-01" && value <= "2100-12-31" && !Number.isNaN(Date.parse(value)));
+// Kiểm tra vòng: "2026-02-30" vẫn parse được trong JS nhưng không khớp lại chuỗi gốc.
+export function isCalendarDate(value: string | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value < "2000-01-01" || value > "2100-12-31") return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+/** Bữa mặc định theo giờ hiện tại ở múi giờ hồ sơ (không theo giờ máy chủ hay thiết bị). */
+function mealTypeAt(timeZone: string): DayMeal["mealType"] {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+  return hour < 10 ? "breakfast" : hour < 15 ? "lunch" : hour < 21 ? "dinner" : "snack";
+}
 
 /** Ngày đang xem: tham số ?date hợp lệ, nếu không thì hôm nay theo múi giờ hồ sơ. */
 export async function resolveDay(requested: string | undefined) {
   const { supabase } = await requireUser();
   const { data } = await supabase.from("profiles").select("timezone").maybeSingle();
-  const today = todayIn(data?.timezone ?? "Asia/Ho_Chi_Minh");
-  return { today, date: isDate(requested) ? requested : today };
+  const timezone = data?.timezone ?? "Asia/Ho_Chi_Minh";
+  const today = todayIn(timezone);
+  return { today, timezone, defaultMealType: mealTypeAt(timezone), date: isCalendarDate(requested) ? requested : today };
 }
 
 /** Bữa ăn của một ngày, tổng tính từ total_* của từng item snapshot (không cache tổng). */

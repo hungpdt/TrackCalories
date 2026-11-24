@@ -108,3 +108,72 @@ test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", asy
   await expect(page.locator(".energy-card")).toContainText("2.159");
   await expect(page.locator(".daily-meals")).toContainText("phở bò");
 });
+
+test("API ghi nhanh từ chối request không hợp lệ và trả JSON", async ({ page, playwright, baseURL }) => {
+  const anon = await playwright.request.newContext({ baseURL });
+  const unauth = await anon.post("/api/ai/quick-log", { multipart: { note: "200g cơm" } });
+  expect(unauth.status()).toBe(401);
+  expect((await unauth.json()).error).toContain("Phiên đăng nhập");
+  await anon.dispose();
+
+  const api = page.request;
+  const png = { name: "a.png", mimeType: "image/png", buffer: Buffer.from("day khong phai anh") };
+  const spoofed = await api.post("/api/ai/quick-log", { multipart: { note: "", images: png } });
+  expect(spoofed.status()).toBe(415);
+  const heic = await api.post("/api/ai/quick-log", { multipart: { images: { name: "a.heic", mimeType: "image/heic", buffer: Buffer.from("x") } } });
+  expect(heic.status()).toBe(415);
+  expect((await heic.json()).error).toContain("HEIC");
+  const empty = await api.post("/api/ai/quick-log", { multipart: { note: "   " } });
+  expect(empty.status()).toBe(400);
+  const noteAsFile = await api.post("/api/ai/quick-log", { multipart: { note: { name: "n.txt", mimeType: "text/plain", buffer: Buffer.from("200g cơm") } } });
+  expect(noteAsFile.status()).toBe(400);
+  const realPng = { name: "m.png", mimeType: "image/png", buffer: (await import("node:fs")).readFileSync(path.join(__dirname, "..", "fixtures", "meal.png")) };
+  const form = new FormData();
+  for (let index = 0; index < 5; index++) form.append("images", new Blob([realPng.buffer], { type: "image/png" }), `m${index}.png`);
+  const tooMany = await api.post("/api/ai/quick-log", { multipart: form });
+  expect(tooMany.status()).toBe(400);
+});
+
+test("mất mạng khi lưu vẫn giữ bản nháp; lưu lại không tạo bữa trùng", async ({ page }) => {
+  await page.goto("/add-meal");
+  await page.getByLabel("Ghi chú thêm").fill("250g bánh mì");
+  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await expect(page.getByText(/Còn \d+ lượt AI hôm nay/)).toBeVisible();
+  await item(page, 0).getByLabel("Tên món").fill("Bánh mì thịt");
+
+  // Chặn đúng một lần POST server action, sau đó cho qua.
+  let blocked = false;
+  await page.route("**/add-meal", async route => {
+    if (!blocked && route.request().method() === "POST" && route.request().headers()["next-action"]) { blocked = true; await route.abort(); }
+    else await route.continue();
+  });
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page.getByText("Mất kết nối khi lưu", { exact: false })).toBeVisible();
+  await expect(item(page, 0).getByLabel("Tên món")).toHaveValue("Bánh mì thịt");
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/\/history\?date=/);
+  await expect(page.locator(".day-meal")).toHaveCount(1);
+  await expect(page.locator(".summary-strip")).toContainText("375");
+});
+
+test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồn tại không làm sập trang", async ({ page }) => {
+  await page.goto("/add-meal");
+  await page.getByLabel("Ghi chú thêm").fill("100g xôi");
+  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await item(page, 0).getByLabel("Gram ăn (tùy chọn)").fill("180");
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page.getByText("chọn “Tính lại” hoặc “Giữ số đã nhập”", { exact: false })).toBeVisible();
+  await expect(page).toHaveURL(/\/add-meal/);
+  await item(page, 0).getByRole("button", { name: "Giữ số đã nhập" }).click();
+  await expect(item(page, 0).getByLabel("Calories (kcal)")).toHaveValue("150");
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/\/history\?date=/);
+  await expect(page.getByText("180 g")).toBeVisible();
+  await expect(page.locator(".summary-strip")).toContainText("150");
+
+  for (const path of ["/history?date=2026-02-30", "/?date=9999-99-99"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText("Chưa tải được nội dung")).toHaveCount(0);
+  }
+});

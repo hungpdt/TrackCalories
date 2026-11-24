@@ -36,7 +36,7 @@ export async function analyzeMeal({ images, note }: { images: MealImage[]; note:
   const model = process.env.OPENAI_MODEL;
   if (!apiKey || !model) throw new AiError("not_configured");
 
-  const client = new OpenAI({ apiKey, timeout: 60_000, maxRetries: 1 });
+  const client = new OpenAI({ apiKey, timeout: 25_000, maxRetries: 1 }); // tối đa ~50 s, dưới maxDuration 60 s của route
   try {
     const response = await client.responses.parse({
       model,

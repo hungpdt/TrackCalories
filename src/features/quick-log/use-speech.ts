@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 // Kiểu tối thiểu cho Web Speech API (Chrome/Edge dùng tiền tố webkit); không phải trình duyệt nào cũng có.
 type RecognitionResult = { isFinal: boolean; 0: { transcript: string } };
@@ -37,6 +37,8 @@ export function useSpeech(onFinal: (text: string) => void) {
   const recognition = useRef<Recognition | null>(null);
 
   const stop = useCallback(() => recognition.current?.stop(), []);
+  // Rời màn hoặc unmount: tắt micro để không ghi âm ngầm.
+  useEffect(() => () => recognition.current?.stop(), []);
 
   const start = useCallback(() => {
     const Ctor = getCtor();

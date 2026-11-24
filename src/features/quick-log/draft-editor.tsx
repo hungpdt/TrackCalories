@@ -38,9 +38,10 @@ export function emptyItem(prefill?: Partial<EditorItem>): EditorItem {
   };
 }
 
-function defaultMealType(): SaveMealInput["mealType"] {
-  const hour = new Date().getHours();
-  return hour < 10 ? "breakfast" : hour < 15 ? "lunch" : hour < 21 ? "dinner" : "snack";
+/** Gram đã đổi so với lần tính gần nhất mà người dùng chưa chọn tính lại hay giữ số (PRD mục 5, A07). */
+function gramsPending(item: EditorItem) {
+  const grams = num(item.grams);
+  return Boolean(grams && Number.isFinite(grams) && item.basis.grams && grams !== item.basis.grams && item.basis.kcal !== null);
 }
 
 /** Lỗi của từng món; rỗng nghĩa là món hợp lệ để lưu. */
@@ -57,8 +58,8 @@ function problems(item: EditorItem) {
   return list;
 }
 
-export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
-  initialItems: EditorItem[]; today: string; warnings?: string[]; onCancel?: () => void;
+export function DraftEditor({ initialItems, today, defaultMealType, warnings = [], onCancel }: {
+  initialItems: EditorItem[]; today: string; defaultMealType: SaveMealInput["mealType"]; warnings?: string[]; onCancel?: () => void;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -84,6 +85,11 @@ export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
     update(item.key, { kcal: show(next.kcal), protein: show(next.protein), carbs: show(next.carbs), fat: show(next.fat), basis: { grams, ...next } });
   }
 
+  /** Giữ đúng số người dùng đang thấy cho gram mới (ghi đè có chủ đích). */
+  function keepNumbers(item: EditorItem) {
+    update(item.key, { basis: { grams: num(item.grams), kcal: num(item.kcal), protein: num(item.protein), carbs: num(item.carbs), fat: num(item.fat) } });
+  }
+
   const totals = items.reduce((sum, item) => ({
     kcal: sum.kcal + (num(item.kcal) || 0), protein: sum.protein + (num(item.protein) || 0),
     carbs: sum.carbs + (num(item.carbs) || 0), fat: sum.fat + (num(item.fat) || 0),
@@ -93,6 +99,7 @@ export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
     setSubmitted(true);
     if (!items.length) { setError("Thêm ít nhất một món."); return; }
     if (items.some(item => problems(item).length)) { setError("Bổ sung các ô được đánh dấu trước khi lưu. Ô trống nghĩa là chưa biết, không phải 0."); return; }
+    if (items.some(gramsPending)) { setError("Có món đã đổi gram: chọn “Tính lại” hoặc “Giữ số đã nhập” trước khi lưu."); return; }
     if (!mealDate) { setError("Chọn ngày ăn."); return; }
     const payload: Omit<SaveMealInput, "requestId"> = {
       mealDate, mealType,
@@ -108,9 +115,14 @@ export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
     const requestId = lastAttempt.current.id;
     setError("");
     startSaving(async () => {
-      const result = await saveMeal({ ...payload, requestId });
-      if (!result.ok) { setError(result.error); return; }
-      router.push(`/history?date=${result.mealDate}`);
+      try {
+        const result = await saveMeal({ ...payload, requestId });
+        if (!result.ok) { setError(result.error); return; }
+        router.push(`/history?date=${result.mealDate}`);
+      } catch {
+        // Mất mạng/lỗi server: giữ nguyên bản nháp; bấm lại dùng cùng request_id nên không tạo trùng.
+        setError("Mất kết nối khi lưu. Bản nháp vẫn được giữ, hãy bấm lưu lại.");
+      }
     });
   }
 
@@ -133,7 +145,7 @@ export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
       {items.map((item, index) => {
         const issues = submitted ? problems(item) : [];
         const grams = num(item.grams);
-        const canRecalc = Boolean(grams && item.basis.grams && grams !== item.basis.grams && item.basis.kcal !== null);
+        const canRecalc = gramsPending(item);
         const invalid = (label: string) => issues.includes(label) ? true : undefined;
         return <li key={item.key} className={`draft-item ${item.needsReview ? "needs-review" : ""}`}>
           <div className="draft-item-head">
@@ -146,7 +158,11 @@ export function DraftEditor({ initialItems, today, warnings = [], onCancel }: {
             <label className="field">Gram ăn (tùy chọn)<input inputMode="decimal" value={item.grams} aria-invalid={invalid("gram (0–5000)")} placeholder="Ví dụ 200" onChange={event => update(item.key, { grams: event.target.value })} /></label>
             <label className="field">Khẩu phần (tùy chọn)<input value={item.portionNote} maxLength={60} placeholder="Ví dụ 1 tô" onChange={event => update(item.key, { portionNote: event.target.value })} /></label>
           </div>
-          {canRecalc && <button type="button" className="button secondary recalc" onClick={() => recalc(item)}><RotateCcw size={16} /> Tính lại dinh dưỡng theo {formatNumber(grams!)} g</button>}
+          {canRecalc && <div className="recalc" role="group" aria-label="Gram đã đổi">
+            <p className="small">Đã đổi gram. Dinh dưỡng bên dưới vẫn theo {formatNumber(item.basis.grams!)} g.</p>
+            <button type="button" className="button secondary" onClick={() => recalc(item)}><RotateCcw size={16} /> Tính lại dinh dưỡng theo {formatNumber(grams!)} g</button>
+            <button type="button" className="button secondary" onClick={() => keepNumbers(item)}>Giữ số đã nhập</button>
+          </div>}
           <div className="nutrient-inputs">
             {([["kcal", "Calories (kcal)", "kcal"], ["protein", "Protein (g)", "protein"], ["carbs", "Carbs (g)", "carb"], ["fat", "Chất béo (g)", "chất béo"]] as const).map(([field, label, issue]) =>
               <label key={field} className="field">{label}

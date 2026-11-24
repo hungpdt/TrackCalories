@@ -17,9 +17,13 @@ export function DayMeals({ meals, allowDelete = false }: { meals: DayMeal[]; all
   function remove(meal: DayMeal) {
     if (!window.confirm(`Xóa ${mealTypeLabels[meal.mealType].toLowerCase()} (${meal.items.length} món)? Thao tác này không hoàn tác được.`)) return;
     startTransition(async () => {
-      const result = await deleteMeal(meal.id);
-      setMessage(result.ok ? "Đã xóa bữa ăn." : "Chưa xóa được bữa ăn. Thử lại.");
-      router.refresh();
+      try {
+        const result = await deleteMeal(meal.id);
+        setMessage(result.ok ? "Đã xóa bữa ăn." : "Chưa xóa được bữa ăn. Thử lại.");
+        router.refresh();
+      } catch {
+        setMessage("Mất kết nối, chưa xóa được bữa ăn. Thử lại.");
+      }
     });
   }
 

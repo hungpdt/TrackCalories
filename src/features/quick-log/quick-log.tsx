@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Camera, ImagePlus, Mic, MicOff, Pencil, ScanLine, Sparkles, X } from "lucide-react";
 import { PageHeading } from "@/components/ui/shared";
-import type { AiDraft } from "@/lib/ai/draft";
+import type { AiDraft, SaveMealInput } from "@/lib/ai/draft";
 import { DraftEditor, emptyItem, itemFromAi, type EditorItem } from "./draft-editor";
 import { compressImage } from "./image";
 import { useSpeech } from "./use-speech";
@@ -13,7 +13,7 @@ const MAX_NOTE = 1000;
 type Photo = { id: string; blob: Blob; url: string };
 type Stage = { kind: "capture" } | { kind: "editor"; items: EditorItem[]; warnings: string[]; fromAi: boolean };
 
-export function QuickLog({ today, prefill }: { today: string; prefill?: EditorItem }) {
+export function QuickLog({ today, defaultMealType, prefill }: { today: string; defaultMealType: SaveMealInput["mealType"]; prefill?: EditorItem }) {
   const [stage, setStage] = useState<Stage>(prefill ? { kind: "editor", items: [prefill], warnings: [], fromAi: false } : { kind: "capture" });
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [note, setNote] = useState("");
@@ -73,13 +73,17 @@ export function QuickLog({ today, prefill }: { today: string; prefill?: EditorIt
     photos.forEach((photo, index) => form.append("images", photo.blob, `anh-${index + 1}.jpg`));
     try {
       const response = await fetch("/api/ai/quick-log", { method: "POST", body: form });
-      const body: { draft?: AiDraft; remaining?: number; error?: string } = await response.json().catch(() => ({ error: "Phiên đăng nhập có thể đã hết. Tải lại trang." }));
+      const fallback = response.status === 401 ? "Phiên đăng nhập đã hết. Tải lại trang để đăng nhập."
+        : response.status >= 500 ? "AI phản hồi quá lâu hoặc máy chủ đang lỗi. Thử lại hoặc nhập thủ công; ảnh và ghi chú vẫn được giữ."
+        : "Chưa phân tích được. Thử lại hoặc nhập thủ công.";
+      const body: { draft?: AiDraft; remaining?: number; error?: string } = await response.json().catch(() => ({ error: fallback }));
       if (!response.ok || !body.draft) { setError(body.error ?? "Chưa phân tích được. Thử lại hoặc nhập thủ công."); return; }
       if (!body.draft.items.length) {
         setError(body.draft.warnings[0] ?? "AI chưa nhận ra món nào. Thêm ghi chú rõ hơn hoặc nhập thủ công.");
         return;
       }
       if (typeof body.remaining === "number") setInfo(`Còn ${body.remaining} lượt AI hôm nay.`);
+      speech.stop();
       setStage({ kind: "editor", items: body.draft.items.map(itemFromAi), warnings: body.draft.warnings, fromAi: true });
     } catch {
       setError("Mất kết nối. Ảnh và ghi chú vẫn được giữ; thử lại hoặc nhập thủ công.");
@@ -93,7 +97,7 @@ export function QuickLog({ today, prefill }: { today: string; prefill?: EditorIt
   if (stage.kind === "editor") return <>
     {heading}
     {info && <p className="feedback" role="status">{info}</p>}
-    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} onCancel={() => setStage({ kind: "capture" })} />
+    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} defaultMealType={defaultMealType} onCancel={() => setStage({ kind: "capture" })} />
   </>;
 
   return <>
@@ -134,7 +138,7 @@ export function QuickLog({ today, prefill }: { today: string; prefill?: EditorIt
     </section>
 
     <section className="other-methods" aria-label="Cách nhập khác">
-      <button type="button" className="method-chip" onClick={() => setStage({ kind: "editor", items: [emptyItem()], warnings: [], fromAi: false })}><Pencil size={18} /> Nhập thủ công</button>
+      <button type="button" className="method-chip" onClick={() => { speech.stop(); setStage({ kind: "editor", items: [emptyItem()], warnings: [], fromAi: false }); }}><Pencil size={18} /> Nhập thủ công</button>
       <span className="method-chip disabled" aria-disabled="true"><BookOpen size={18} /> Kho món <small>(sắp có)</small></span>
       <span className="method-chip disabled" aria-disabled="true"><ScanLine size={18} /> Quét nhãn <small>(sắp có)</small></span>
     </section>

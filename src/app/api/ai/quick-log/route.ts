@@ -22,6 +22,15 @@ const aiMessages: Record<AiErrorCode, [number, string]> = {
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
 
+async function hasImageSignature(file: File) {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const jpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+  const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => head[index] === byte);
+  const ascii = (from: number, to: number) => String.fromCharCode(...head.slice(from, to));
+  const webp = ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
+  return jpeg || png || webp;
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getClaims();
@@ -30,7 +39,8 @@ export async function POST(request: NextRequest) {
   let form: FormData;
   try { form = await request.formData(); } catch { return fail(400, "Dữ liệu gửi lên không hợp lệ."); }
 
-  const note = String(form.get("note") ?? "").trim();
+  const rawNote = form.get("note");
+  const note = typeof rawNote === "string" ? rawNote.trim() : "";
   if (Array.from(note).length > MAX_NOTE) return fail(400, `Ghi chú tối đa ${MAX_NOTE} ký tự.`);
   const files = form.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
   if (files.length > MAX_IMAGES) return fail(400, `Tối đa ${MAX_IMAGES} ảnh mỗi lần.`);
@@ -41,6 +51,8 @@ export async function POST(request: NextRequest) {
     if (/hei[cf]/i.test(file.type)) return fail(415, "Ảnh HEIC chưa được hỗ trợ. Chọn ảnh JPEG hoặc PNG.");
     if (!IMAGE_TYPES.has(file.type)) return fail(415, "Chỉ nhận ảnh JPEG, PNG hoặc WebP.");
     if (file.size > MAX_IMAGE_BYTES) return fail(413, "Mỗi ảnh tối đa 3 MB.");
+    // Kiểm tra chữ ký file thật, không tin MIME do client khai báo (tránh tốn lượt cho file giả).
+    if (!(await hasImageSignature(file))) return fail(415, "File không phải ảnh JPEG, PNG hoặc WebP hợp lệ.");
     total += file.size;
   }
   if (total > MAX_TOTAL_BYTES) return fail(413, "Tổng dung lượng ảnh quá lớn.");
