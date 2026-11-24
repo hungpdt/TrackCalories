@@ -8,7 +8,8 @@ import { AlertTriangle, Check, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { mealTypeLabels, mealTypes, type AiItem, type SaveMealInput } from "@/lib/ai/draft";
 import { formatNumber } from "@/lib/format";
 import { parseDecimal } from "@/lib/nutrition/targets";
-import { saveMeal } from "./actions";
+import { attachMealPhoto, saveMeal } from "./actions";
+import { compressImage } from "./image";
 
 type Values = { kcal: number | null; protein: number | null; carbs: number | null; fat: number | null };
 export type EditorItem = {
@@ -62,13 +63,17 @@ function problems(item: EditorItem) {
   return list;
 }
 
-export function DraftEditor({ initialItems, today, defaultMealType, warnings = [], onCancel }: {
+export function DraftEditor({ initialItems, today, defaultMealType, warnings = [], onCancel, photo = null, editing }: {
   initialItems: EditorItem[]; today: string; defaultMealType: SaveMealInput["mealType"]; warnings?: string[]; onCancel?: () => void;
+  /** Ảnh đầu tiên của lần ghi nhanh; lưu làm ảnh bữa sau khi bữa đã lưu (lỗi ảnh không chặn việc lưu bữa). */
+  photo?: Blob | null;
+  /** Sửa bữa đã ghi: giữ id/revision, ngày và bữa ban đầu; lưu xong quay về trang chi tiết. */
+  editing?: { mealId: string; revision: number; date: string; mealType: SaveMealInput["mealType"] };
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
-  const [mealDate, setMealDate] = useState(today);
-  const [mealType, setMealType] = useState<SaveMealInput["mealType"]>(defaultMealType);
+  const [mealDate, setMealDate] = useState(editing?.date ?? today);
+  const [mealType, setMealType] = useState<SaveMealInput["mealType"]>(editing?.mealType ?? defaultMealType);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [saving, startSaving] = useTransition();
@@ -120,9 +125,21 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
     setError("");
     startSaving(async () => {
       try {
-        const result = await saveMeal({ ...payload, requestId });
+        const result = await saveMeal({ ...payload, requestId, ...(editing ? { mealId: editing.mealId, expectedRevision: editing.revision } : {}) });
         if (!result.ok) { setError(result.error); return; }
-        router.push(`/history?date=${result.mealDate}&saved=1${result.libraryWarning ? "&library=failed" : ""}`);
+        let photoFailed = false;
+        if (photo && result.mealId) {
+          try {
+            const small = await compressImage(new File([photo], "anh.jpg", { type: photo.type || "image/jpeg" }), 900, 0.78);
+            const form = new FormData();
+            form.append("mealId", result.mealId);
+            form.append("photo", new File([small], "anh.jpg", { type: "image/jpeg" }));
+            photoFailed = !(await attachMealPhoto(form)).ok;
+          } catch { photoFailed = true; }
+        }
+        if (editing) { router.push(`/meals/${editing.mealId}`); router.refresh(); return; }
+        const notes = `${result.libraryWarning ? "&library=failed" : ""}${photoFailed ? "&photo=failed" : ""}`;
+        router.push(`/?date=${result.mealDate}&saved=1${notes}`);
       } catch {
         // Mất mạng/lỗi server: giữ nguyên bản nháp; bấm lại dùng cùng request_id nên không tạo trùng.
         setError("Mất kết nối khi lưu. Bản nháp vẫn được giữ, hãy bấm lưu lại.");
@@ -132,7 +149,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
 
   return <section className="card draft-editor" aria-labelledby="draft-title">
     <div className="section-heading">
-      <h2 id="draft-title" ref={heading} tabIndex={-1}>Kiểm tra bản nháp</h2>
+      <h2 id="draft-title" ref={heading} tabIndex={-1}>{editing ? "Sửa thành phần" : "Kiểm tra bản nháp"}</h2>
       {items.some(item => item.source === "ai_estimate") && <span className="tag estimate-tag">Ước tính AI</span>}
     </div>
     {warnings.length > 0 && <ul className="draft-warnings">{warnings.map(w => <li key={w}><AlertTriangle size={16} aria-hidden="true" /> {w}</li>)}</ul>}

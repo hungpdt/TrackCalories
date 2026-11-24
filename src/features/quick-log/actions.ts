@@ -6,7 +6,7 @@ import { saveMealSchema } from "@/lib/ai/draft";
 import { requireUser } from "@/lib/supabase/server";
 import { normalizeVi } from "@/lib/text/search";
 
-export type SaveMealResult = { ok: true; mealDate: string; libraryWarning?: string } | { ok: false; error: string };
+export type SaveMealResult = { ok: true; mealId: string; mealDate: string; libraryWarning?: string } | { ok: false; error: string };
 
 /**
  * Lưu bữa từ editor chung (bản nháp AI hoặc nhập thủ công) qua RPC save_meal.
@@ -16,7 +16,7 @@ export type SaveMealResult = { ok: true; mealDate: string; libraryWarning?: stri
 export async function saveMeal(input: unknown): Promise<SaveMealResult> {
   const parsed = saveMealSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Kiểm tra lại: mỗi món cần tên và đủ kcal, protein, carb, chất béo không âm." };
-  const { requestId, mealDate, mealType, items } = parsed.data;
+  const { requestId, mealDate, mealType, items, mealId, expectedRevision } = parsed.data;
   const { supabase } = await requireUser();
 
   const per100 = (value: number, grams: number) => Math.round((value * 100 / grams) * 10000) / 10000;
@@ -33,10 +33,12 @@ export async function saveMeal(input: unknown): Promise<SaveMealResult> {
     source: item.source, assumptions: item.assumptions,
   });
 
-  const { error } = await supabase.rpc("save_meal", {
+  const { data: saved, error } = await supabase.rpc("save_meal", {
     p_request_id: requestId, p_meal: { meal_date: mealDate, meal_type: mealType }, p_items: payload,
+    ...(mealId ? { p_meal_id: mealId, p_expected_revision: expectedRevision } : {}),
   });
   if (error) {
+    if (error.message.includes("revision_conflict")) return { ok: false, error: "Bữa này vừa được sửa ở nơi khác. Tải lại trang rồi sửa lại." };
     if (error.message.includes("idempotency_conflict")) return { ok: false, error: "Bản nháp đã thay đổi sau lần lưu trước. Bấm lưu lại." };
     return { ok: false, error: "Chưa lưu được bữa ăn. Bản nháp vẫn được giữ, hãy thử lại." };
   }
@@ -63,14 +65,35 @@ export async function saveMeal(input: unknown): Promise<SaveMealResult> {
     }
   }
   revalidatePath("/", "layout");
-  return { ok: true, mealDate, libraryWarning };
+  return { ok: true, mealId: String((saved as { meal_id?: string } | null)?.meal_id ?? ""), mealDate, libraryWarning };
+}
+
+const PHOTO_BUCKET = "meal-photos";
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+/** Gắn ảnh (JPEG đã thu nhỏ trên thiết bị) cho bữa vừa lưu: <user_id>/<meal_id>.jpg, RLS kiểm tra chủ sở hữu. */
+export async function attachMealPhoto(form: FormData): Promise<{ ok: boolean }> {
+  const id = z.uuid().safeParse(form.get("mealId"));
+  const file = form.get("photo");
+  if (!id.success || !(file instanceof File) || file.type !== "image/jpeg" || file.size === 0 || file.size > MAX_PHOTO_BYTES) return { ok: false };
+  const { supabase, userId } = await requireUser();
+  const { data: meal } = await supabase.from("meals").select("id").eq("id", id.data).maybeSingle();
+  if (!meal) return { ok: false };
+  const path = `${userId}/${id.data}.jpg`;
+  const { error: uploadError } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, { contentType: "image/jpeg", upsert: true });
+  if (uploadError) return { ok: false };
+  const { error } = await supabase.from("meals").update({ photo_path: path }).eq("id", id.data);
+  revalidatePath("/", "layout");
+  return { ok: !error };
 }
 
 export async function deleteMeal(mealId: unknown): Promise<{ ok: boolean }> {
   const id = z.uuid().safeParse(mealId);
   if (!id.success) return { ok: false };
   const { supabase } = await requireUser();
+  const { data: meal } = await supabase.from("meals").select("photo_path").eq("id", id.data).maybeSingle();
   const { error } = await supabase.from("meals").delete().eq("id", id.data);
+  if (!error && meal?.photo_path) await supabase.storage.from(PHOTO_BUCKET).remove([meal.photo_path]);
   revalidatePath("/", "layout");
   return { ok: !error };
 }

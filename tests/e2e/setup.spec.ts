@@ -45,8 +45,7 @@ async function saveLossGoal(page: Page) {
 }
 
 async function openSettings(page: Page, isMobile: boolean) {
-  if (isMobile) await page.locator(".mobile-settings").click();
-  else await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cài đặt" }).click();
+  await page.getByRole("navigation", { name: isMobile ? "Điều hướng điện thoại" : "Điều hướng chính" }).getByRole("link", { name: "Hồ sơ" }).click();
   await expect(page).toHaveURL(/\/settings$/);
 }
 
@@ -85,7 +84,7 @@ test.describe("đã đăng nhập", () => {
     await expect(page.getByText("Cơm gà", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await page.getByRole("button", { name: "Lưu mục tiêu" }).click();
-    await expect(page.getByText("/ 2.509 kcal")).toBeVisible();
+    await expect(page.getByText("/ 2.509")).toBeVisible();
     await page.reload();
     await expect(page.getByTestId("intake")).toHaveText("2.509");
     // Phương án A: thẻ mục tiêu thu gọn dưới Dashboard, bấm để mở.
@@ -105,7 +104,7 @@ test.describe("đã đăng nhập", () => {
     await page.goto("/settings");
     await expect(page.getByText("Bạn chưa thiết lập mục tiêu", { exact: false })).toBeVisible();
     await saveLossGoal(page);
-    await expect(page.getByText("/ 2.509 kcal")).toBeVisible();
+    await expect(page.getByText("/ 2.509")).toBeVisible();
     await expect(page.getByTestId("intake")).toHaveText("2.509");
     await openSettings(page, isMobile);
     await expect(page.getByText("2.509 kcal/ngày")).toBeVisible();
@@ -121,7 +120,7 @@ test.describe("đã đăng nhập", () => {
     await page.goto("/settings");
     await expect(page).toHaveURL(/\/login$/);
     await signIn(page, email);
-    await expect(page.getByText("/ 2.509 kcal")).toBeVisible();
+    await expect(page.getByText("/ 2.509")).toBeVisible();
     await page.context().clearCookies();
     await signUp(page);
     await expect(page.getByRole("heading", { name: "Thiết lập mục tiêu của bạn" })).toBeVisible();

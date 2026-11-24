@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BookOpen, Camera, Image as ImageIcon, Mic, Pencil } from "lucide-react";
+import { BookOpen, Camera, Image as ImageIcon, Mic, Pencil, Scale } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { setPendingPhotos } from "@/features/quick-log/pending-photos";
 
@@ -41,7 +41,8 @@ export function AddMealSheet({ open, onClose, date }: { open: boolean; onClose: 
       </label>
       <button type="button" className="add-option" onClick={() => go("/add-meal?mode=note")}><Mic size={24} aria-hidden="true" /><span>Nói / gõ</span></button>
       <button type="button" className="add-option" onClick={() => go("/add-meal?mode=manual")}><Pencil size={24} aria-hidden="true" /><span>Nhập tay</span></button>
-      <button type="button" className="add-option wide" onClick={() => go("/foods")}><BookOpen size={24} aria-hidden="true" /><span>Chọn từ kho món</span></button>
+      <button type="button" className="add-option" onClick={() => go("/foods")}><BookOpen size={24} aria-hidden="true" /><span>Kho món</span></button>
+      <button type="button" className="add-option" onClick={() => { onClose(); router.push("/weight#ghi-can-nang"); }}><Scale size={24} aria-hidden="true" /><span>Cân nặng</span></button>
     </div>
   </Sheet>;
 }

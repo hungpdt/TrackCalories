@@ -87,7 +87,7 @@ test("lệch từ 2 kg so với lúc đặt mục tiêu thì gợi ý tính lạ
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: "Tính calories và macro" }).click();
   await page.getByRole("button", { name: "Lưu mục tiêu" }).click();
-  await expect(page.getByText("/ 2.759 kcal")).toBeVisible();
+  await expect(page.getByText("/ 2.759")).toBeVisible();
 
   await page.goto("/weight");
   await expect(page.locator(".weight-headline")).toContainText("80");
@@ -97,5 +97,5 @@ test("lệch từ 2 kg so với lúc đặt mục tiêu thì gợi ý tính lạ
   await expect(page.locator(".recalc-banner")).toContainText("giảm 2,5 kg so với lúc đặt mục tiêu (80 kg)");
   await page.getByRole("link", { name: "Tính lại" }).click();
   await expect(page.getByRole("button", { name: "Chỉnh thông tin" })).toBeVisible();
-  await expect(page.getByText("/ 2.759 kcal")).toBeVisible();
+  await expect(page.getByText("/ 2.759")).toBeVisible();
 });

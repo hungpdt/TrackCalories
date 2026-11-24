@@ -231,12 +231,14 @@ export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | 
     </section>
   </>;
 
-  return <div className="setup-page">
+  // Chưa có mục tiêu nhưng đã ghi bữa (ví dụ ghi trước khi thiết lập): vẫn hiện các bữa, form thiết lập ở dưới.
+  const mealsFirst = !saved && !preview && (dashboard.meals.length > 0 || dashboard.date !== dashboard.today);
+  return <>{mealsFirst && <Dashboard {...dashboard} />}<div className="setup-page">
     <header className="setup-heading">
       <h1>{profile ? "Mục tiêu dinh dưỡng của bạn" : "Thiết lập mục tiêu của bạn"}</h1>
       <p className="muted">{profile ? "Xem mức nạp ước tính và lượng protein, carb, chất béo mỗi ngày." : "Nhập số đo, mức vận động và thói quen ăn uống để tính mức nạp mỗi ngày."}</p>
     </header>
     {goalCard}
     {accountNote}
-  </div>;
+  </div></>;
 }

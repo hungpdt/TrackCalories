@@ -125,7 +125,7 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
   if (stage.kind === "editor") return <>
     {heading}
     {info && <p className="feedback" role="status">{info}</p>}
-    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} defaultMealType={defaultMealType} onCancel={() => setStage({ kind: "capture" })} />
+    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} defaultMealType={defaultMealType} onCancel={() => setStage({ kind: "capture" })} photo={photos[0]?.blob ?? null} />
   </>;
 
   return <>

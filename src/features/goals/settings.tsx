@@ -20,7 +20,7 @@ export function Settings({ email, timezone, goalType, effectiveFrom, targets }: 
   ] as const : [];
   const goalLabel = goalType ? goals[goalType as keyof typeof goals]?.label : undefined;
   return <>
-    <PageHeading eyebrow="PHÙ HỢP VỚI CHÍNH BẠN" title="Cài đặt & mục tiêu" description="Mục tiêu dưới đây là mục tiêu Dashboard đang dùng." />
+    <PageHeading eyebrow="PHÙ HỢP VỚI CHÍNH BẠN" title="Hồ sơ" description="Tài khoản, mục tiêu dinh dưỡng và cài đặt." />
     <div className="editor-grid">
       <section className="card">
         <h2>Mục tiêu dinh dưỡng</h2>

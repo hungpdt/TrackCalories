@@ -183,6 +183,12 @@ Người dùng hỏi ghi bài tập và số phút, tính calories theo cân n�
 
 Sau giao diện A + kho món: phương án B (Supabase Free + Vercel Hobby). Checklist và phần người dùng tự làm: [KE-HOACH-CLOUD.md](KE-HOACH-CLOUD.md). Cần merge G2 → G2b → G3 vào main trước khi deploy.
 
+## 7c. Giao diện kiểu thẻ (duyệt 24/11/2026)
+
+- Người dùng duyệt bản thiết kế phỏng theo Cal AI (bỏ Groups): 3 tab Trang chủ / Tiến độ / Hồ sơ + nút + nổi (Chụp món, Nói/gõ, Kho món, Cân nặng). Trang chủ: thanh 7 ngày, thẻ kcal còn lại có vòng, 3 ô P/C/F còn lại, danh sách "Gần đây" theo từng lần ghi (ảnh, tên, giờ, kcal, P/C/F); quẹt trái để hiện nút Xóa; bấm mở trang chi tiết bữa (ảnh, tổng, thành phần). Tiến độ thay Cân nặng; Hồ sơ thay Cài đặt; Kho món vào qua nút +.
+- Ảnh món làm ngay: Supabase Storage bucket riêng tư `meal-photos`, đường dẫn `<user_id>/<meal_id>.jpg`, cột `meals.photo_path`, xem qua signed URL; xóa bữa xóa ảnh.
+- ĐỂ SAU: chuỗi ngày ghi (streak) và biểu đồ calo theo tuần ở Tiến độ.
+
 ## 8. Nhánh Git
 
 `main` là nhánh ổn định. Tạo nhánh từ main đã cập nhật khi bắt đầu từng phần, tránh tạo trước nhiều nhánh từ nền cũ: `feature/app-shell`, `feature/auth-database`, `feature/ai-quick-log` (G2b), `feature/food-library`, `feature/meal-logging`, `feature/dashboard-goals-weight`, `feature/label-scanner`, `feature/ai-voice`, `feature/mvp-validation`. Mỗi nhánh phải đạt kiểm tra của giai đoạn rồi mới merge vào main. Trước commit và push trình phạm vi/diff, kết quả kiểm tra và hỏi người dùng. Không force-push.

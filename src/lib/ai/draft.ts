@@ -63,6 +63,9 @@ export const mealTypeLabels: Record<(typeof mealTypes)[number], string> = {
 /** Dữ liệu gửi lên khi người dùng xác nhận lưu bữa. Bốn giá trị dinh dưỡng bắt buộc (không null). */
 export const saveMealSchema = z.object({
   requestId: z.uuid(),
+  /** Có khi sửa bữa đã ghi: save_meal thay toàn bộ món, kiểm tra revision để không ghi đè bản sửa khác. */
+  mealId: z.uuid().optional(),
+  expectedRevision: z.number().int().min(1).optional(),
   mealDate: z.iso.date(),
   mealType: z.enum(mealTypes),
   items: z.array(z.object({

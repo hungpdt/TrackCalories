@@ -144,7 +144,7 @@ function AmountPicker({ food, today, defaultMealType, onBack }: { food: LibraryF
       try {
         const result = await logFood({ ...payload, requestId });
         if (!result.ok) { setError(result.error); return; }
-        router.push(`/history?date=${result.mealDate}&saved=1`);
+        router.push(`/?date=${result.mealDate}&saved=1`);
       } catch {
         setError("Mất kết nối khi lưu. Bấm lưu lại; bữa sẽ không bị ghi trùng.");
       }

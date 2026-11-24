@@ -53,9 +53,9 @@ test("tạo món, tìm không dấu, yêu thích, thêm 1,5 tô và 200 g vào n
   await expect(amount.locator(".amount-total")).toContainText("P 42 · C 87 · F 18 g");
   await amount.getByRole("button", { name: "Bữa trưa" }).click();
   await amount.getByRole("button", { name: "Lưu vào nhật ký" }).click();
-  await expect(page).toHaveURL(/\/history\?date=.*saved=1/);
+  await expect(page).toHaveURL(/\/\?date=.*saved=1/);
   await expect(page.getByRole("status").filter({ hasText: "Đã lưu bữa ăn." })).toBeVisible();
-  await expect(page.locator(".summary-strip")).toContainText("675");
+  await expect(page.locator(".kcal-card")).toContainText("675");
 
   await page.goto("/foods");
   await page.getByRole("group", { name: "Lọc món" }).getByRole("button", { name: "Yêu thích" }).click();
@@ -68,7 +68,7 @@ test("tạo món, tìm không dấu, yêu thích, thêm 1,5 tô và 200 g vào n
   await riceAmount.getByLabel(/Lượng ăn/).fill("200");
   await expect(riceAmount.locator(".amount-total")).toContainText("260 kcal");
   await riceAmount.getByRole("button", { name: "Lưu vào nhật ký" }).click();
-  await expect(page.locator(".summary-strip")).toContainText("935");
+  await expect(page.locator(".kcal-card")).toContainText("935");
 
   await page.goto("/foods");
   await page.getByRole("group", { name: "Lọc món" }).getByRole("button", { name: "Gần đây" }).click();
@@ -84,8 +84,10 @@ test("món theo khẩu phần có gram: chọn đơn vị gram; sửa và xóa m
   await amount.getByLabel(/Lượng ăn/).fill("250");
   await expect(amount.locator(".amount-total")).toContainText("225 kcal");
   await amount.getByRole("button", { name: "Lưu vào nhật ký" }).click();
-  await expect(page.locator(".summary-strip")).toContainText("225");
-  await expect(page.getByText("250 g")).toBeVisible();
+  await expect(page.locator(".kcal-card")).toContainText("225");
+  await page.locator(".meal-card-title").first().click();
+  await expect(page.getByText("250 g", { exact: false })).toBeVisible();
+  await page.goBack();
 
   await page.goto("/foods");
   await page.getByRole("button", { name: /Phở bò/ }).click();
@@ -101,7 +103,7 @@ test("món theo khẩu phần có gram: chọn đơn vị gram; sửa và xóa m
   await expect(page.getByText("Kho món đang trống")).toBeVisible();
 
   await page.goto("/history");
-  await expect(page.locator(".summary-strip")).toContainText("225");
+  await expect(page.locator(".kcal-card")).toContainText("225");
   await expect(page.getByText("Phở bò")).toBeVisible();
 });
 
@@ -153,7 +155,7 @@ test("bảng + trên điện thoại: nhập tay, chụp ảnh, nói/gõ, kho m�
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
   await plus.click();
-  await sheet.getByRole("button", { name: "Chọn từ kho món" }).click();
+  await sheet.getByRole("button", { name: "Kho món", exact: true }).click();
   await expect(page).toHaveURL(/\/foods$/);
 });
 
@@ -176,7 +178,7 @@ test("đang xem ngày hôm qua: bấm + / Ghi bữa ăn / kho món thì món lư
   await item.getByLabel("Tên món").fill("Bánh mì hôm qua");
   for (const [label, value] of [["Calories (kcal)", "400"], ["Protein (g)", "15"], ["Carbs (g)", "50"], ["Chất béo (g)", "12"]]) await item.getByLabel(label).fill(value);
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(new RegExp(`/history\\?date=${yesterday}&`));
+  await expect(page).toHaveURL(new RegExp(`\\?date=${yesterday}&`));
   await expect(page.getByText("Bánh mì hôm qua")).toBeVisible();
   await page.goto(`/history?date=${today}`);
   await expect(page.getByText("Bánh mì hôm qua")).toHaveCount(0);
@@ -185,7 +187,7 @@ test("đang xem ngày hôm qua: bấm + / Ghi bữa ăn / kho món thì món lư
   await page.goto(`/history?date=${yesterday}`);
   if (isMobile) {
     await page.getByRole("navigation", { name: "Điều hướng điện thoại" }).getByRole("button", { name: "Ghi bữa ăn" }).click();
-    await page.getByRole("dialog", { name: "Ghi bữa ăn" }).getByRole("button", { name: "Chọn từ kho món" }).click();
+    await page.getByRole("dialog", { name: "Ghi bữa ăn" }).getByRole("button", { name: "Kho món", exact: true }).click();
   } else {
     await page.goto(`/foods?date=${yesterday}`);
   }

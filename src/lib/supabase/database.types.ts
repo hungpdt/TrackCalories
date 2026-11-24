@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-
+  
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -35,7 +35,7 @@ export type Database = {
                     "request_count"?: number,"updated_at"?: string,"usage_date"?: string,"user_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"foods": {
                   Row: {
@@ -49,7 +49,7 @@ export type Database = {
                     "basis_quantity"?: number,"basis_type"?: string,"basis_unit"?: string,"brand"?: string | null,"carbs_g"?: number,"created_at"?: string,"fat_g"?: number,"id"?: string,"is_favorite"?: boolean,"kcal"?: number,"last_used_at"?: string | null,"name"?: string,"protein_g"?: number,"serving_label"?: string | null,"serving_mass_g"?: number | null,"serving_volume_ml"?: number | null,"source"?: string,"source_note"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"goals": {
                   Row: {
@@ -63,7 +63,7 @@ export type Database = {
                     "baseline_weight_kg"?: number | null,"carbs_g"?: number,"created_at"?: string,"daily_kcal"?: number,"effective_from"?: string,"fat_g"?: number,"goal_type"?: string,"id"?: string,"protein_g"?: number,"target_weight_kg"?: number | null,"user_id"?: string,"weekly_adjustment_kcal"?: number
                   }
                   Relationships: [
-
+                    
                   ]
                 },"meal_items": {
                   Row: {
@@ -93,17 +93,17 @@ isOneToOne: false
                   ]
                 },"meals": {
                   Row: {
-                    "created_at": string,"eaten_at": string,"id": string,"meal_date": string,"meal_type": string,"note": string | null,"revision": number,"updated_at": string,"user_id": string
+                    "created_at": string,"eaten_at": string,"id": string,"meal_date": string,"meal_type": string,"note": string | null,"photo_path": string | null,"revision": number,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"eaten_at"?: string,"id"?: string,"meal_date": string,"meal_type": string,"note"?: string | null,"revision"?: number,"updated_at"?: string,"user_id"?: string
+                    "created_at"?: string,"eaten_at"?: string,"id"?: string,"meal_date": string,"meal_type": string,"note"?: string | null,"photo_path"?: string | null,"revision"?: number,"updated_at"?: string,"user_id"?: string
                   }
                   Update: {
-                    "created_at"?: string,"eaten_at"?: string,"id"?: string,"meal_date"?: string,"meal_type"?: string,"note"?: string | null,"revision"?: number,"updated_at"?: string,"user_id"?: string
+                    "created_at"?: string,"eaten_at"?: string,"id"?: string,"meal_date"?: string,"meal_type"?: string,"note"?: string | null,"photo_path"?: string | null,"revision"?: number,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"mutation_requests": {
                   Row: {
@@ -117,7 +117,7 @@ isOneToOne: false
                     "created_at"?: string,"operation"?: string,"payload_hash"?: string,"request_id"?: string,"result_json"?: Json | null,"user_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"profiles": {
                   Row: {
@@ -131,7 +131,7 @@ isOneToOne: false
                     "activity_level"?: string | null,"age_years"?: number | null,"allergies"?: string,"body_fat_pct"?: number | null,"created_at"?: string,"display_name"?: string | null,"favorite_foods"?: string,"frequent_foods"?: string,"height_cm"?: number | null,"id"?: string,"sex_for_formula"?: string | null,"timezone"?: string,"unit_system"?: string,"updated_at"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"weight_logs": {
                   Row: {
@@ -145,7 +145,7 @@ isOneToOne: false
                     "created_at"?: string,"id"?: string,"logged_date"?: string,"note"?: string | null,"updated_at"?: string,"user_id"?: string,"weight_kg"?: number
                   }
                   Relationships: [
-
+                    
                   ]
                 }
           }
@@ -280,11 +280,11 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-
+            
           }
         },"public": {
           Enums: {
-
+            
           }
         }
 } as const

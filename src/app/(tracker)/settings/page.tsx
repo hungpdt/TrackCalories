@@ -2,7 +2,7 @@ import { Settings } from "@/features/goals/settings";
 import { getProfileAndGoal } from "@/features/goals/queries";
 import { goalFromDb } from "@/features/goals/profile-mapping";
 
-export const metadata = { title: "Cài đặt" };
+export const metadata = { title: "Hồ sơ" };
 
 export default async function Page() {
   const { email, timezone, goal, targets } = await getProfileAndGoal();

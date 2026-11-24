@@ -53,12 +53,13 @@ test("ghi nhanh bằng ảnh + ghi chú: bản nháp nhiều món, bổ sung s�
   await expect(page.locator(".draft-total")).toContainText("700 kcal");
 
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history\?date=\d{4}-\d{2}-\d{2}/);
-  await expect(page.locator(".summary-strip")).toContainText("700");
+  await expect(page).toHaveURL(/\/\?date=\d{4}-\d{2}-\d{2}/);
+  await expect(page.locator(".kcal-card")).toContainText("700");
+  await page.locator(".meal-card-title").first().click();
   await expect(page.getByText("Rau luộc")).toBeVisible();
-  await expect(page.getByText("Ước tính AI").first()).toBeVisible();
-  await page.reload();
-  await expect(page.locator(".summary-strip")).toContainText("700");
+  await expect(page.getByTitle("Ước tính AI").first()).toBeVisible();
+  await page.goBack();
+  await expect(page.locator(".kcal-card")).toContainText("700");
 });
 
 test("nhập thủ công: từ chối số dạng hàng nghìn, lưu, rồi xóa bữa", async ({ page }) => {
@@ -75,13 +76,16 @@ test("nhập thủ công: từ chối số dạng hàng nghìn, lưu, rồi xóa
   await expect(first.getByRole("alert")).toContainText("kcal");
   await first.getByLabel("Calories (kcal)").fill("620");
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history\?date=/);
-  await expect(page.locator(".summary-strip")).toContainText("620");
-  await expect(page.getByText("1 tô")).toBeVisible();
+  await expect(page).toHaveURL(/\/\?date=/);
+  await expect(page.locator(".kcal-card")).toContainText("620");
+  await page.locator(".meal-card-title").first().click();
+  await expect(page.getByText("1 tô", { exact: false })).toBeVisible();
 
+  await expect(page).toHaveURL(/\/meals\//);
   page.once("dialog", dialog => dialog.accept());
-  await page.locator(".day-meal").getByRole("button", { name: /^Xóa / }).click();
-  await expect(page.getByText("Nhật ký đang trống")).toBeVisible();
+  await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await expect(page).toHaveURL(/\/\?date=/);
+  await expect(page.locator(".meal-card")).toHaveCount(0);
 });
 
 test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", async ({ page }) => {
@@ -96,32 +100,32 @@ test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", asy
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: "Tính calories và macro" }).click();
   await page.getByRole("button", { name: "Lưu mục tiêu" }).click();
-  await expect(page.getByText("/ 2.759 kcal")).toBeVisible();
+  await expect(page.getByText("/ 2.759")).toBeVisible();
 
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("400g phở bò");
   await page.getByRole("button", { name: "Tạo bản nháp" }).click();
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history/);
+  await expect(page).toHaveURL(/saved=1/);
   await page.goto("/");
-  await expect(page.locator(".energy-card")).toContainText("600");
-  await expect(page.locator(".energy-card")).toContainText("2.159");
-  await expect(page.locator(".daily-meals")).toContainText("phở bò");
+  await expect(page.locator(".kcal-card")).toContainText("600");
+  await expect(page.locator(".kcal-card")).toContainText("2.159");
+  await expect(page.locator(".meal-cards")).toContainText("phở bò");
   // Mục tiêu duy trì: P 112, C 405, F 77 g; đã ăn P 40, C 80, F 20 g.
-  const remaining = page.locator(".macro-remaining");
-  await expect(remaining.locator(".protein")).toContainText("72 g còn lại");
-  await expect(remaining.locator(".carbs")).toContainText("325 g còn lại");
-  await expect(remaining.locator(".fat")).toContainText("57 g còn lại");
+  const remaining = page.locator(".macro-cards");
+  await expect(remaining.locator(".protein")).toContainText("72g");
+  await expect(remaining.locator(".carbs")).toContainText("325g");
+  await expect(remaining.locator(".fat")).toContainText("57g");
 
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("2000g mỡ");
   await page.getByRole("button", { name: "Tạo bản nháp" }).click();
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history/);
+  await expect(page).toHaveURL(/saved=1/);
   await page.goto("/");
-  await expect(remaining.locator(".fat")).toContainText("43 g vượt");
+  await expect(remaining.locator(".fat")).toContainText("43g");
   await expect(remaining.locator(".fat")).toHaveClass(/over/);
-  await expect(page.locator(".energy-card")).toContainText("Vượt mục tiêu của bạn");
+  await expect(page.locator(".kcal-card")).toContainText("kcal vượt mục tiêu");
 });
 
 test("API ghi nhanh từ chối request không hợp lệ và trả JSON", async ({ page, playwright, baseURL }) => {
@@ -166,9 +170,9 @@ test("mất mạng khi lưu vẫn giữ bản nháp; lưu lại không tạo b�
   await expect(page.getByText("Mất kết nối khi lưu", { exact: false })).toBeVisible();
   await expect(item(page, 0).getByLabel("Tên món")).toHaveValue("Bánh mì thịt");
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history\?date=/);
-  await expect(page.locator(".day-meal")).toHaveCount(1);
-  await expect(page.locator(".summary-strip")).toContainText("375");
+  await expect(page).toHaveURL(/\/\?date=/);
+  await expect(page.locator(".meal-card")).toHaveCount(1);
+  await expect(page.locator(".kcal-card")).toContainText("375");
 });
 
 test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồn tại không làm sập trang", async ({ page }) => {
@@ -182,13 +186,15 @@ test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồ
   await item(page, 0).getByRole("button", { name: "Giữ số đã nhập" }).click();
   await expect(item(page, 0).getByLabel("Calories (kcal)")).toHaveValue("150");
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-  await expect(page).toHaveURL(/\/history\?date=/);
-  await expect(page.getByText("180 g")).toBeVisible();
-  await expect(page.locator(".summary-strip")).toContainText("150");
+  await expect(page).toHaveURL(/\/\?date=/);
+  await page.locator(".meal-card-title").first().click();
+  await expect(page.getByText("180 g", { exact: false })).toBeVisible();
+  await page.goBack();
+  await expect(page.locator(".kcal-card")).toContainText("150");
 
   for (const path of ["/history?date=2026-02-30", "/?date=9999-99-99"]) {
     await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.locator(".home, .setup-page").first()).toBeVisible();
     await expect(page.getByText("Chưa tải được nội dung")).toHaveCount(0);
   }
 });

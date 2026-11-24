@@ -43,3 +43,17 @@ export async function deleteWeight(id: unknown): Promise<{ ok: boolean }> {
   revalidatePath("/", "layout");
   return { ok: !error };
 }
+
+/** Cân nặng mục tiêu (tùy chọn) gắn vào mục tiêu đang hiệu lực; null để bỏ. */
+export async function setTargetWeight(input: unknown): Promise<{ ok: boolean }> {
+  const parsed = z.object({ kg: z.number().min(20).max(350).nullable(), today: z.iso.date() }).safeParse(input);
+  if (!parsed.success) return { ok: false };
+  const { supabase } = await requireUser();
+  const { data: goal } = await supabase.from("goals").select("id").lte("effective_from", parsed.data.today)
+    .order("effective_from", { ascending: false }).limit(1).maybeSingle();
+  if (!goal) return { ok: false };
+  const kg = parsed.data.kg === null ? null : Math.round(parsed.data.kg * 10) / 10;
+  const { error } = await supabase.from("goals").update({ target_weight_kg: kg }).eq("id", goal.id);
+  revalidatePath("/weight");
+  return { ok: !error };
+}

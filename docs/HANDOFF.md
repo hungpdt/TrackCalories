@@ -93,6 +93,28 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Một `next dev` khác (PID 30348) đang chạy ở cổng 3000 trong thư mục này; `npm run test:e2e` cần tắt nó hoặc dùng config trỏ 3000.
 - TypeScript 5.9 vì typescript-eslint chưa hỗ trợ 7; ESLint 9 sắp hết hỗ trợ.
 
+## Giao diện kiểu thẻ + ảnh món (Claude, 24/11/2026, CHƯA commit)
+
+- Người dùng duyệt thiết kế phỏng theo Cal AI (PLAN mục 7c), yêu cầu thêm: quẹt trái thẻ món để Xóa; ảnh món làm ngay; chuỗi ngày (streak) để sau.
+- Database: migration `20261124150000_meal_photos.sql` (cột `meals.photo_path` có CHECK định dạng `<uuid>/<uuid>.jpg`; grant update riêng cột này + policy chỉ bữa của mình; bucket riêng tư `meal-photos` 2 MB, chỉ JPEG; policy storage theo thư mục `<user_id>/`). `supabase/config.toml` bật `[storage]`. Đã `supabase stop/start` (giữ dữ liệu) + `migration up` local; `gen:types` chạy lại. Cloud: cần bật Storage và áp migration này.
+- Server: `saveMeal` trả `mealId`; `attachMealPhoto(FormData)` (kiểm tra uuid, JPEG ≤ 2 MB, bữa thuộc người dùng, upload upsert rồi gắn `photo_path`); `deleteMeal` xóa cả ảnh. Editor nén ảnh đầu tiên còn 900 px rồi gắn sau khi lưu bữa; lỗi ảnh không chặn lưu (thông báo "Chưa lưu được ảnh").
+- Đọc: `features/meals/queries.ts` trả `time` (giờ theo múi giờ hồ sơ) + `photoUrl` (signed URL 1 giờ), `getMeal(id)`, `getLoggedDays`.
+- UI: Trang chủ mới (`features/dashboard/dashboard.tsx`): thanh 7 ngày, thẻ kcal còn lại + vòng SVG, 3 ô P/C/F còn lại, danh sách thẻ theo từng lần ghi (`features/meals/meal-card.tsx`, quẹt trái lộ Xóa, chạm mở chi tiết). Trang chi tiết `/meals/[id]` (`meal-detail.tsx`). `/history` chuyển hướng về `/?…`; `history.tsx`, `day-meals.tsx` đã xóa. Điều hướng: điện thoại 3 tab (Trang chủ/Tiến độ/Hồ sơ) + nút + tròn; máy tính thanh bên thêm Kho món. Menu +: Chụp ảnh, Chọn ảnh, Nói/gõ, Nhập tay, Kho món, Cân nặng. Tiêu đề Cân nặng→"Tiến độ", Cài đặt→"Hồ sơ". Tông đơn sắc (CSS cuối `globals.css`). Lưu ý: Tailwind có class `.ring` → vòng tròn dùng `.progress-ring`.
+- Chưa có tài khoản mục tiêu nhưng có bữa/đang xem ngày khác: Trang chủ hiện bữa trên form thiết lập.
+- Kiểm tra: lint, typecheck PASS; unit 50/50; `test:db` 38/38 (thêm `tests/db/meal-photos.test.ts`: B không đọc/ghi/xóa ảnh hay sửa photo_path của A, ẩn danh không đọc, đường dẫn ngoài thư mục bị chặn, PNG bị chặn, không sửa cột khác); e2e 52 pass / 1 skip (desktop+Pixel 7). Ảnh chụp mobile: Trang chủ, quẹt Xóa, chi tiết có ảnh, menu +. E2E cập nhật theo giao diện mới. Chạy bằng config tạm: `next build` + `next start -p 3100` với `AI_PROVIDER=mock` (vì `next dev` của người dùng đang chạy ở 3000, không cho dev thứ hai).
+- ĐỂ SAU: streak, biểu đồ calo theo tuần ở Tiến độ; thẻ ảnh chưa thử trên điện thoại thật.
+
+## Vòng 2 giao diện (Claude, 24/11/2026, CHƯA commit)
+
+- Người dùng yêu cầu: (1) bỏ "Bản xem trước", thay icon streak ngọn lửa; (2) sửa lỗi ảnh; (3) sửa thành phần bữa đã ghi; (4) thanh ngày kéo trái/phải theo tuần; (5) tab Tiến độ làm theo video.
+- (2) Nguyên nhân: ảnh đã upload được nhưng URL là signed URL Supabase `127.0.0.1:55421` → điện thoại không tải được. Sửa: route `src/app/api/meals/[id]/photo/route.ts` tải ảnh qua server (RLS kiểm tra, `Cache-Control: private, max-age=300`); `photoUrl` = `/api/meals/<id>/photo`.
+- (1) `getStreak()` trong `features/meals/queries.ts` (ngày liên tiếp có bữa tới hôm nay/hôm qua); layout truyền vào AppShell; pill `.streak-pill` (lửa cam khi hôm nay đã ghi) link tới `/weight#chuoi-ngay`.
+- (3) `/meals/[id]/edit` (`features/meals/edit-meal.tsx`) dùng DraftEditor với `editing` {mealId, revision}; `saveMealSchema` có `mealId`/`expectedRevision`; RPC `save_meal` cập nhật theo revision (báo lỗi khi xung đột), giữ ảnh. Nút "Sửa" ở trang chi tiết.
+- (4) `features/dashboard/week-strip.tsx`: tuần T2–CN, kéo phải = tuần trước, kéo trái = tuần sau (không quá tuần hiện tại), nút mũi tên cho bàn phím. Lỗi đã sửa: dải 3 tuần làm lưới `.home` rộng 762px trên Pixel 7 → `minmax(0,1fr)`.
+- (5) `/weight` = Tiến độ: `features/progress/progress.tsx` + `queries.ts`: thẻ chuỗi ngày (chấm T2–CN) + số ngày ghi tuần này; biểu đồ cân nặng (giữ cũ, đổi màu đen); thẻ cân hiện tại + "cân lại sau N ngày" + thanh Bắt đầu→Mục tiêu (% mục tiêu); đặt cân mục tiêu tại chỗ (`setTargetWeight` cập nhật `goals.target_weight_kg` của mục tiêu hiệu lực; đọc lấy mục tiêu gần nhất có giá trị); thay đổi cân 3/7/14/30/90 ngày/từ đầu; calo trung bình/ngày dạng cột chồng P/C/F theo tuần (4 tuần); thay đổi năng lượng nạp (TB N ngày so với N ngày trước); BMI (WHO). Bỏ qua: huy hiệu, ảnh tiến độ, calo đốt (chưa có vận động).
+- Kiểm tra: lint, typecheck PASS; unit 50/50; db 38/38; e2e 53 pass/1 skip (build + start 3100, AI mock). Ảnh mobile: streak, kéo tuần, sửa thành phần (lưu 620 kcal, vẫn còn ảnh), Tiến độ đầy đủ.
+- Lưu ý dữ liệu: một bữa thật lúc 17:21 không có ảnh trong DB (không rõ có chọn ảnh hay không).
+
 ## Việc tiếp theo
 
 - Sau khi xong giao diện A + kho món (đang chờ người dùng thử điện thoại và cho phép commit): chuyển lên cloud theo phương án B (Supabase Free + Vercel Hobby) người dùng đã duyệt 24/11/2026 trong phiên phụ. Checklist: [docs/KE-HOACH-CLOUD.md](KE-HOACH-CLOUD.md). Mỗi commit/push/merge/deploy vẫn xin phép.

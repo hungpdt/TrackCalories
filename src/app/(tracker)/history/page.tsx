@@ -1,13 +1,8 @@
-import { History } from "@/features/meals/history";
-import { getMealsOn, resolveDay } from "@/features/meals/queries";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Nhật ký" };
-
-export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string; saved?: string; library?: string }> }) {
-  const params = await searchParams;
-  const { date } = await resolveDay(params.date);
-  const notice = params.saved === "1"
-    ? params.library === "failed" ? "Đã lưu bữa ăn, nhưng chưa thêm được món vào kho." : "Đã lưu bữa ăn."
-    : undefined;
-  return <History date={date} meals={await getMealsOn(date)} notice={notice} />;
+// Nhật ký đã gộp vào Trang chủ (thanh tuần); giữ đường dẫn cũ cho link/bookmark.
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const params = new URLSearchParams(Object.entries(await searchParams).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  const query = params.toString();
+  redirect(query ? `/?${query}` : "/");
 }

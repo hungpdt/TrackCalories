@@ -70,8 +70,8 @@ test.describe("điện thoại qua http trong mạng LAN (trang không an toàn)
     await page.getByRole("button", { name: "Thêm món" }).click();
     await page.locator(".draft-item").nth(3).getByRole("button", { name: /^Bỏ món/ }).click();
     await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-    await expect(page).toHaveURL(/\/history\?date=/);
-    await expect(page.locator(".summary-strip")).toContainText("245");
+    await expect(page).toHaveURL(/\/\?date=/);
+    await expect(page.locator(".kcal-card")).toContainText("245");
   });
 
   test("giọng nói báo cần HTTPS, gợi ý dùng micro bàn phím, không kẹt trạng thái", async ({ page }) => {
@@ -151,7 +151,7 @@ test.describe("điện thoại qua HTTPS trong mạng LAN (npm run dev:https)", 
     const second = page.locator(".draft-item").nth(1);
     for (const label of ["Calories (kcal)", "Protein (g)", "Carbs (g)", "Chất béo (g)"]) await second.getByLabel(label).fill("20");
     await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
-    await expect(page).toHaveURL(/\/history\?date=/);
-    await expect(page.locator(".summary-strip")).toContainText("320");
+    await expect(page).toHaveURL(/\/\?date=/);
+    await expect(page.locator(".kcal-card")).toContainText("320");
   });
 });

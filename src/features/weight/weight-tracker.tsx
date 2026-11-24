@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -19,8 +19,10 @@ const day = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
 const show = (value: number) => String(Math.round(value * 10) / 10).replace(".", ",");
 const signed = (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : "±"}${formatNumber(Math.abs(value))}`;
 
-export function WeightTracker({ entries, today, baseline }: {
+export function WeightTracker({ entries, today, baseline, top, bottom }: {
   entries: WeightEntry[]; today: string; baseline: { goalKcal: number; baselineKg: number } | null;
+  /** Thẻ của trang Tiến độ: trên biểu đồ cân nặng (chuỗi ngày) và dưới biểu đồ (mục tiêu, thay đổi, calo, BMI). */
+  top?: ReactNode; bottom?: ReactNode;
 }) {
   const [range, setRange] = useState<Range>(30);
   const [sheet, setSheet] = useState<SheetState>(null);
@@ -38,7 +40,7 @@ export function WeightTracker({ entries, today, baseline }: {
   const drift = latest && baseline ? latest.kg - baseline.baselineKg : 0;
 
   return <>
-    <PageHeading eyebrow="TIẾN BỘ THEO CÁCH CỦA BẠN" title="Cân nặng" description="Quan sát xu hướng theo thời gian, thay vì một con số đơn lẻ."
+    <PageHeading eyebrow="TIẾN BỘ THEO CÁCH CỦA BẠN" title="Tiến độ" description="Cân nặng theo thời gian, thay vì một con số đơn lẻ."
       action={<button type="button" className="button" onClick={() => { setMessage(""); setSheet({ mode: "add" }); }}><Plus size={18} /> Ghi cân nặng</button>} />
     {message && <p className="saved-notice" role="status">{message}</p>}
     {latest && baseline && Math.abs(drift) >= 2 && !dismissed && <div className="recalc-banner" role="note">
@@ -48,10 +50,13 @@ export function WeightTracker({ entries, today, baseline }: {
         <Link className="button" href="/#muc-tieu">Tính lại</Link>
       </div>
     </div>}
+    {top}
     {!latest ? <section className="card"><EmptyState title="Chưa có số đo nào" detail="Ghi cân nặng hôm nay để bắt đầu theo dõi xu hướng."
       action={<button type="button" className="button" onClick={() => setSheet({ mode: "add" })}><Plus size={18} /> Ghi cân nặng</button>} /></section>
-      : <>
+      : null}
+    {!latest ? bottom : <>
         <section className="card weight-summary">
+          <h2 className="weight-title">Tiến độ cân nặng</h2>
           <div className="weight-headline">
             <strong>{formatNumber(latest.kg)}<small> kg</small></strong>
             <span className="muted">Số đo {formatDate(latest.date)}{monthAgo ? <> · <b className={latest.kg - monthAgo.kg <= 0 ? "trend-down" : "trend-up"}>{signed(latest.kg - monthAgo.kg)} kg</b> so với {formatDate(monthAgo.date)}</> : null}</span>
@@ -62,8 +67,9 @@ export function WeightTracker({ entries, today, baseline }: {
           </div>
           <WeightChart points={points} />
         </section>
+        {bottom}
         <section className="card weight-history">
-          <h2>Lịch sử</h2>
+          <h2>Lịch sử cân nặng</h2>
           <ul className="weight-list">
             {entries.map(entry => <li key={entry.id}>
               <span>{formatDate(entry.date)}</span>
@@ -95,8 +101,8 @@ function WeightChart({ points }: { points: WeightEntry[] }) {
     <line x1={pad} x2={width - pad} y1={y(low + 0.5)} y2={y(low + 0.5)} stroke="#e6ede9" />
     <text x={pad} y={y(high - 0.5) - 8} className="chart-label">{formatNumber(high - 0.5)} kg</text>
     <text x={pad} y={y(low + 0.5) + 26} className="chart-label">{formatNumber(low + 0.5)} kg</text>
-    <polyline points={line} fill="none" stroke="#147d64" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-    {points.map(point => <circle key={point.id} cx={x(point.date)} cy={y(point.kg)} r="4.5" fill="#147d64" stroke="white" strokeWidth="2" />)}
+    <polyline points={line} fill="none" stroke="#151515" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+    {points.map(point => <circle key={point.id} cx={x(point.date)} cy={y(point.kg)} r="4.5" fill="#151515" stroke="white" strokeWidth="2" />)}
   </svg>;
 }
 
@@ -145,7 +151,7 @@ function WeightForm({ state, today, lastKg, onDone }: { state: NonNullable<Sheet
     </div>
   </div>;
 
-  return <form className="weight-form" noValidate onSubmit={event => { event.preventDefault(); submit(false); }}>
+  return <form id="ghi-can-nang" className="weight-form" noValidate onSubmit={event => { event.preventDefault(); submit(false); }}>
     {!editing && <label className="field">Ngày<input type="date" value={date} max={today} onChange={event => setDate(event.target.value)} /></label>}
     <label className="field">Cân nặng (kg)
       <input className="weight-input" inputMode="decimal" autoFocus value={value} placeholder="Ví dụ 74,5" aria-invalid={error ? true : undefined} onChange={event => setValue(event.target.value)} />
