@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LogOut, Pencil, ShieldCheck, Target } from "lucide-react";
 import { PageHeading } from "@/components/ui/shared";
 import { signOut } from "@/features/auth/actions";
-import { formatNumber, type Nutrients } from "@/lib/demo/data";
+import { formatNumber, type Nutrients } from "@/lib/format";
 import { goals } from "@/lib/nutrition/targets";
 
 export function Settings({ email, timezone, goalType, effectiveFrom, targets }: {

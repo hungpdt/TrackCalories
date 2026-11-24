@@ -13,7 +13,8 @@
     "test:db": "vitest run -c vitest.db.config.mts",
     "gen:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "dev:lan": "next dev --webpack --hostname 0.0.0.0",
-    "dev:https": "node scripts/dev-https.mjs"
+    "dev:https": "node scripts/dev-https.mjs",
+    "phone": "npm run build && node scripts/dev-https.mjs --prod"
   },
   "engines": {
     "node": ">=20.9.0"

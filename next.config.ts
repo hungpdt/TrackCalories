@@ -4,5 +4,6 @@ import type { NextConfig } from "next";
 // (danh sách hostname cách nhau bằng dấu phẩy, không có http:// hay cổng). Chỉ có tác dụng ở chế độ dev.
 const devOrigins = (process.env.DEV_ORIGINS ?? "").split(",").map(value => value.trim()).filter(Boolean);
 
-const nextConfig: NextConfig = { reactStrictMode: true, agentRules: false, allowedDevOrigins: devOrigins };
+// devIndicators: false ẩn nút "N"/"Rendering…" của Next ở chế độ dev (lỗi biên dịch/runtime vẫn hiện).
+const nextConfig: NextConfig = { reactStrictMode: true, agentRules: false, allowedDevOrigins: devOrigins, devIndicators: false };
 export default nextConfig;

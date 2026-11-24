@@ -88,8 +88,17 @@ test.describe("đã đăng nhập", () => {
     await expect(page.getByText("/ 2.509 kcal")).toBeVisible();
     await page.reload();
     await expect(page.getByTestId("intake")).toHaveText("2.509");
+    // Phương án A: thẻ mục tiêu thu gọn dưới Dashboard, bấm để mở.
+    await page.getByText("Mục tiêu dinh dưỡng của bạn · 2.509 kcal/ngày").click();
     await page.getByRole("button", { name: "Chỉnh thông tin" }).click();
     await expect(page.getByLabel("Cân nặng (kg)")).toHaveValue("80");
+  });
+
+  test("Cài đặt → Chỉnh hồ sơ mở sẵn thẻ mục tiêu trên Tổng quan", async ({ page, isMobile }) => {
+    await saveLossGoal(page);
+    await openSettings(page, isMobile);
+    await page.getByRole("link", { name: "Chỉnh hồ sơ và mục tiêu" }).click();
+    await expect(page.getByRole("button", { name: "Chỉnh thông tin" })).toBeVisible();
   });
 
   test("Tổng quan hiện Dashboard, Cài đặt dùng cùng mục tiêu và vào được trên mọi màn hình", async ({ page, isMobile }) => {

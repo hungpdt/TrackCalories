@@ -53,14 +53,14 @@ export type Database = {
                   ]
                 },"goals": {
                   Row: {
-                    "carbs_g": number,"created_at": string,"daily_kcal": number,"effective_from": string,"fat_g": number,"goal_type": string,"id": string,"protein_g": number,"target_weight_kg": number | null,"user_id": string,"weekly_adjustment_kcal": number
+                    "baseline_weight_kg": number | null,"carbs_g": number,"created_at": string,"daily_kcal": number,"effective_from": string,"fat_g": number,"goal_type": string,"id": string,"protein_g": number,"target_weight_kg": number | null,"user_id": string,"weekly_adjustment_kcal": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "carbs_g": number,"created_at"?: string,"daily_kcal": number,"effective_from": string,"fat_g": number,"goal_type": string,"id"?: string,"protein_g": number,"target_weight_kg"?: number | null,"user_id"?: string,"weekly_adjustment_kcal"?: number
+                    "baseline_weight_kg"?: number | null,"carbs_g": number,"created_at"?: string,"daily_kcal": number,"effective_from": string,"fat_g": number,"goal_type": string,"id"?: string,"protein_g": number,"target_weight_kg"?: number | null,"user_id"?: string,"weekly_adjustment_kcal"?: number
                   }
                   Update: {
-                    "carbs_g"?: number,"created_at"?: string,"daily_kcal"?: number,"effective_from"?: string,"fat_g"?: number,"goal_type"?: string,"id"?: string,"protein_g"?: number,"target_weight_kg"?: number | null,"user_id"?: string,"weekly_adjustment_kcal"?: number
+                    "baseline_weight_kg"?: number | null,"carbs_g"?: number,"created_at"?: string,"daily_kcal"?: number,"effective_from"?: string,"fat_g"?: number,"goal_type"?: string,"id"?: string,"protein_g"?: number,"target_weight_kg"?: number | null,"user_id"?: string,"weekly_adjustment_kcal"?: number
                   }
                   Relationships: [
 

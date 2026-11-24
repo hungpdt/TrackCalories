@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useTransition, type ComponentProps, type FormEvent, type ReactNode } from "react";
+import { useState, useSyncExternalStore, useTransition, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dashboard } from "@/features/dashboard/dashboard";
 import { saveProfileGoal } from "@/features/goals/actions";
-import { formatNumber, type Nutrients } from "@/lib/demo/data";
+import { formatNumber, type Nutrients } from "@/lib/format";
 import {
   activities, calculateTargets, emptyProfile, familiarFoods, goals,
   readBody, splitFoods, type ProfileDraft,
 } from "@/lib/nutrition/targets";
+
+function subscribeHash(callback: () => void) {
+  window.addEventListener("hashchange", callback);
+  return () => window.removeEventListener("hashchange", callback);
+}
 
 const steps = ["Số đo", "Vận động và mục tiêu", "Sở thích và dị ứng"];
 
@@ -181,6 +186,8 @@ export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | 
   const profile = preview ?? (!editing ? saved : null);
   // Đã có mục tiêu trong database và không đang chỉnh: Tổng quan hiện Dashboard ngày trước, mục tiêu ở dưới.
   const showDashboard = saved && targets && !editing && !preview;
+  // Đến từ link /#muc-tieu (Cài đặt → Chỉnh hồ sơ): mở sẵn thẻ mục tiêu.
+  const hashOpen = useSyncExternalStore(subscribeHash, () => window.location.hash === "#muc-tieu", () => false);
 
   function edit(value: ProfileDraft) {
     setInitial(value);
@@ -212,15 +219,15 @@ export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | 
     onDone={value => { setPreview(value); setMessage(""); }} />;
   const accountNote = <p className="setup-local muted">Hồ sơ và mục tiêu được lưu vào tài khoản của bạn khi bấm lưu. Mục tiêu mới có hiệu lực từ hôm nay, không đổi mục tiêu của các ngày trước.</p>;
 
+  // Phương án A: mục tiêu thu gọn thành một dòng dưới Dashboard; mở bằng "Xem mục tiêu" hoặc link #muc-tieu.
   if (showDashboard) return <>
     <Dashboard {...dashboard} />
-    <section className="setup-page home-goals" aria-labelledby="goal-heading">
-      <header className="setup-heading">
-        <h2 id="goal-heading">Mục tiêu dinh dưỡng của bạn</h2>
-        <p className="muted">Mức nạp ước tính và lượng protein, carb, chất béo mỗi ngày dùng cho Dashboard.</p>
-      </header>
-      {goalCard}
-      {accountNote}
+    <section className="setup-page home-goals" aria-label="Mục tiêu dinh dưỡng của bạn">
+      <details className="home-goals-toggle" id="muc-tieu-toggle" open={hashOpen || undefined}>
+        <summary>Mục tiêu dinh dưỡng của bạn · {formatNumber(targets.kcal)} kcal/ngày</summary>
+        {goalCard}
+        {accountNote}
+      </details>
     </section>
   </>;
 

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { mealTypeLabels, mealTypes, type AiItem, type SaveMealInput } from "@/lib/ai/draft";
-import { formatNumber } from "@/lib/demo/data";
+import { formatNumber } from "@/lib/format";
 import { parseDecimal } from "@/lib/nutrition/targets";
 import { saveMeal } from "./actions";
 
@@ -15,6 +15,8 @@ export type EditorItem = {
   key: string; name: string; grams: string; portionNote: string;
   kcal: string; protein: string; carbs: string; fat: string;
   source: "ai_estimate" | "manual"; needsReview: boolean; assumptions: string[];
+  /** Người dùng tích để lưu món vào kho sau khi bữa được lưu. */
+  saveToLibrary: boolean;
   /** Gram và dinh dưỡng tại lần tính gần nhất, để tính lại theo tỉ lệ khi người dùng đổi gram. */
   basis: { grams: number | null } & Values;
 };
@@ -27,7 +29,7 @@ export function itemFromAi(item: AiItem): EditorItem {
   return {
     key: newKey(), name: item.name, grams: show(item.quantity_g), portionNote: item.portion_note ?? "",
     kcal: show(item.kcal), protein: show(item.protein_g), carbs: show(item.carbs_g), fat: show(item.fat_g),
-    source: "ai_estimate", needsReview: item.needs_review, assumptions: item.assumptions,
+    source: "ai_estimate", needsReview: item.needs_review, assumptions: item.assumptions, saveToLibrary: false,
     basis: { grams: item.quantity_g, kcal: item.kcal, protein: item.protein_g, carbs: item.carbs_g, fat: item.fat_g },
   };
 }
@@ -35,7 +37,7 @@ export function itemFromAi(item: AiItem): EditorItem {
 export function emptyItem(prefill?: Partial<EditorItem>): EditorItem {
   return {
     key: newKey(), name: "", grams: "", portionNote: "", kcal: "", protein: "", carbs: "", fat: "",
-    source: "manual", needsReview: false, assumptions: [], basis: { grams: null, kcal: null, protein: null, carbs: null, fat: null },
+    source: "manual", needsReview: false, assumptions: [], saveToLibrary: false, basis: { grams: null, kcal: null, protein: null, carbs: null, fat: null },
     ...prefill,
   };
 }
@@ -108,7 +110,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
       items: items.map(item => ({
         name: item.name.trim(), grams: num(item.grams), portionNote: item.portionNote.trim() || null,
         kcal: num(item.kcal)!, protein_g: num(item.protein)!, carbs_g: num(item.carbs)!, fat_g: num(item.fat)!,
-        source: item.source, assumptions: item.assumptions,
+        source: item.source, assumptions: item.assumptions, saveToLibrary: item.saveToLibrary,
       })),
     };
     // Cùng nội dung → cùng request_id (retry không tạo trùng); nội dung đổi → request mới.
@@ -120,7 +122,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
       try {
         const result = await saveMeal({ ...payload, requestId });
         if (!result.ok) { setError(result.error); return; }
-        router.push(`/history?date=${result.mealDate}`);
+        router.push(`/history?date=${result.mealDate}&saved=1${result.libraryWarning ? "&library=failed" : ""}`);
       } catch {
         // Mất mạng/lỗi server: giữ nguyên bản nháp; bấm lại dùng cùng request_id nên không tạo trùng.
         setError("Mất kết nối khi lưu. Bản nháp vẫn được giữ, hãy bấm lưu lại.");
@@ -172,6 +174,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
                   onChange={event => update(item.key, { [field]: event.target.value })} />
               </label>)}
           </div>
+          <label className="save-to-library"><input type="checkbox" checked={item.saveToLibrary} onChange={event => update(item.key, { saveToLibrary: event.target.checked })} /> Lưu món này vào kho để lần sau chọn nhanh</label>
           {item.assumptions.length > 0 && <details className="draft-assumptions"><summary>Giả định của AI</summary><ul>{item.assumptions.map(a => <li key={a}>{a}</li>)}</ul></details>}
           {issues.length > 0 && <p className="error-message" role="alert">Cần bổ sung: {issues.join(", ")}.</p>}
         </li>;

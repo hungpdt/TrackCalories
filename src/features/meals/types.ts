@@ -1,5 +1,5 @@
 import type { mealTypes } from "@/lib/ai/draft";
-import type { Nutrients } from "@/lib/demo/data";
+import type { Nutrients } from "@/lib/format";
 
 export type DayMealItem = Nutrients & { id: string; name: string; amount: string; aiEstimate: boolean };
 export type DayMeal = { id: string; mealType: (typeof mealTypes)[number]; items: DayMealItem[]; totals: Nutrients };

@@ -1,4 +1,4 @@
-import type { Nutrients } from "@/lib/demo/data";
+import type { Nutrients } from "@/lib/format";
 import { calculateTargets, emptyProfile, type ProfileDraft } from "@/lib/nutrition/targets";
 import type { Tables } from "@/lib/supabase/database.types";
 

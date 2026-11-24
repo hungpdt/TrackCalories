@@ -52,9 +52,9 @@ test.describe("điện thoại qua http trong mạng LAN (trang không an toàn)
     await page.goto("/add-meal");
     // Chờ React hydrate xong (dòng hướng dẫn chỉ hiện ở client) rồi mới chọn file.
     await expect(page.getByText("nút Nói không dùng được", { exact: false })).toBeVisible();
-    await page.locator("input[type=file][capture]").setInputFiles(photo);
+    await page.locator(".quick-capture input[type=file][capture]").setInputFiles(photo);
     await expect(page.getByRole("img", { name: "Ảnh bữa ăn 1" })).toBeVisible();
-    await page.locator("input[type=file][multiple]").setInputFiles([photo, photo]);
+    await page.locator(".quick-capture input[type=file][multiple]").setInputFiles([photo, photo]);
     await expect(page.locator(".photo-thumb")).toHaveCount(3);
     await page.getByRole("button", { name: "Bỏ ảnh 2" }).click();
     await expect(page.locator(".photo-thumb")).toHaveCount(2);
@@ -144,7 +144,7 @@ test.describe("điện thoại qua HTTPS trong mạng LAN (npm run dev:https)", 
     await page.getByRole("button", { name: "Nói" }).click();
     await expect(page.getByLabel("Ghi chú thêm")).toHaveValue("200g cơm tấm");
     await page.getByRole("button", { name: "Dừng nói" }).click();
-    await page.locator("input[type=file][capture]").setInputFiles(photo);
+    await page.locator(".quick-capture input[type=file][capture]").setInputFiles(photo);
     await expect(page.getByRole("img", { name: "Ảnh bữa ăn 1" })).toBeVisible();
     await page.getByRole("button", { name: "Tạo bản nháp" }).click();
     await expect(page.locator(".draft-item")).toHaveCount(2);

@@ -1,11 +1,10 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Activity, LayoutDashboard, BookOpen, CalendarDays, Scale, Settings2, Plus, Sprout, FlaskConical } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AddMealSheet } from "./add-meal-sheet";
 // Khóa localStorage của hồ sơ G1; hồ sơ nay lưu theo tài khoản nên xóa bản cũ khỏi thiết bị.
-// Trang còn dùng dữ liệu minh họa (G3/G5 sẽ chuyển sang database).
-const demoPages = new Set(["/foods", "/weight"]);
 const legacyProfileKey = "tcgm.nutrition-profile.v1";
 const links = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
@@ -16,6 +15,10 @@ const links = [
 ];
 export function AppShell({ children, email }: { children: ReactNode; email: string | null }) {
   const pathname = usePathname();
+  const [addOpen, setAddOpen] = useState(false);
+  const searchParams = useSearchParams();
+  // Ngày đang xem ở Tổng quan/Nhật ký; bảng "+" ghi món cho đúng ngày này.
+  const viewedDate = (pathname === "/" || pathname === "/history") && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("date") ?? "") ? searchParams.get("date") : null;
   useEffect(() => { try { localStorage.removeItem(legacyProfileKey); } catch { /* trình duyệt chặn storage */ } }, []);
   return <div className="app-shell">
     <a href="#main-content" className="skip-link">Đến nội dung chính</a>
@@ -29,9 +32,9 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
     </aside>
     <div className="workspace">
       <header className="topbar"><Link href="/" className="mobile-brand"><Sprout size={22} /> tcgm</Link><span className="topbar-title">Ăn uống có ý thức, mỗi ngày</span><span className="topbar-end"><span className="demo-pill"><FlaskConical size={15} /> Bản xem trước</span><Link href="/settings" className="mobile-settings" aria-label="Cài đặt" aria-current={pathname === "/settings" ? "page" : undefined}><Settings2 size={20} /></Link></span></header>
-      {demoPages.has(pathname) && <div className="demo-notice"><strong>Dữ liệu minh họa</strong><span> Các thay đổi trên màn hình này chỉ giữ trong phiên thử nghiệm.</span></div>}
       <main id="main-content" tabIndex={-1}>{children}</main>
     </div>
-    <nav className="mobile-nav" aria-label="Điều hướng điện thoại">{links.slice(0, 2).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}<Link href="/add-meal" className="mobile-add" aria-label="Ghi bữa ăn" aria-current={pathname === "/add-meal" ? "page" : undefined}><Plus size={25} /></Link>{links.slice(2, 4).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}</nav>
+    <nav className="mobile-nav" aria-label="Điều hướng điện thoại">{links.slice(0, 2).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}<button type="button" className="mobile-add" aria-label="Ghi bữa ăn" aria-haspopup="dialog" aria-expanded={addOpen} onClick={() => setAddOpen(true)}><Plus size={25} /></button>{links.slice(2, 4).map(({ href, label, short, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}><Icon size={21} /><span>{short ?? label}</span></Link>)}</nav>
+    <AddMealSheet open={addOpen} onClose={() => setAddOpen(false)} date={viewedDate} />
   </div>;
 }

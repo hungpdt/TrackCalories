@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Utensils } from "lucide-react";
 import { deleteMeal } from "@/features/quick-log/actions";
 import { mealTypeLabels } from "@/lib/ai/draft";
-import { formatNumber } from "@/lib/demo/data";
+import { formatNumber } from "@/lib/format";
 import type { DayMeal } from "./types";
 
 /** Danh sách bữa của một ngày từ database; cho phép xóa cả bữa khi có onDelete. */

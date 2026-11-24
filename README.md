@@ -53,6 +53,7 @@ npm run test:e2e
 ### Thử trên điện thoại cùng Wi-Fi
 
 - `npm run dev:https` (khuyên dùng, có nút Nói): tạo chứng chỉ tự ký `certs/` (Git bỏ qua, bằng OpenSSL của Git for Windows, không cài gì vào hệ thống) cho localhost và IP LAN, chạy `next dev` ở 127.0.0.1:3000 và cổng HTTPS ở `https://<IP máy>:3443`. Điện thoại cảnh báo chứng chỉ: bấm Nâng cao → Tiếp tục. Dừng mọi `next dev` khác trong thư mục trước khi chạy.
+- `npm run phone`: build rồi chạy bản production (`next start`) sau cổng HTTPS 3443: chuyển trang nhanh, không có chữ "Rendering…". Sửa code xong phải chạy lại lệnh này.
 - `npm run dev:lan`: mở `http://<IP máy>:3000`; ảnh và AI dùng được nhưng trình duyệt không cho micro (nút Nói báo lý do, dùng micro bàn phím).
 - IP LAN được phép trong `allowedDevOrigins` qua biến `DEV_ORIGINS` (dev:https tự thêm IP hiện tại).
 

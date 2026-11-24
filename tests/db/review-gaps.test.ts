@@ -170,3 +170,16 @@ describe("consume_ai_quota", () => {
     expect((await anon.rpc("consume_ai_quota", { p_daily_limit: 5 })).error).not.toBeNull();
   });
 });
+
+describe("mốc cân nặng của mục tiêu", () => {
+  it("lưu cân nặng lúc đặt mục tiêu; sửa nhật ký cân nặng sau đó không đổi mốc", async () => {
+    const user = await newUser("baseline");
+    const profile = { height_cm: 180, age_years: 30, sex_for_formula: "male", body_fat_pct: "", activity_level: "moderate", weight_kg: 80 };
+    const goal = { goal_type: "maintain", weekly_adjustment_kcal: 0, daily_kcal: 2759, protein_g: 112, carbs_g: 405, fat_g: 77 };
+    expect((await user.client.rpc("save_profile_goal", { p_profile: profile, p_goal: goal })).error).toBeNull();
+    const day = (await user.client.from("goals").select("effective_from").single()).data!.effective_from;
+    await user.client.from("weight_logs").update({ weight_kg: 77.5 }).eq("logged_date", day);
+    expect((await user.client.from("goals").select("baseline_weight_kg").single()).data?.baseline_weight_kg).toBe(80);
+    expect((await user.client.from("weight_logs").select("weight_kg").eq("logged_date", day).single()).data?.weight_kg).toBe(77.5);
+  });
+});

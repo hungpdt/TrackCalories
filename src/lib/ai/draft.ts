@@ -75,6 +75,7 @@ export const saveMealSchema = z.object({
     fat_g: z.number().min(0).max(2000),
     source: z.enum(["ai_estimate", "manual"]),
     assumptions: z.array(z.string().max(200)).max(10),
+    saveToLibrary: z.boolean().optional(),
   })).min(1).max(20),
 });
 

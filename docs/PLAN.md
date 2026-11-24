@@ -29,9 +29,9 @@ Thực hiện tuần tự; mỗi giai đoạn cập nhật HANDOFF và báo kế
 | G1 — Khung giao diện | Khởi tạo project, sáu trang, điều hướng mobile, component form/card, loading/empty/error; mock có nhãn; README/env example | Chạy local, build/typecheck/lint đạt; kiểm tra mobile/desktop; phần giao diện A15 |
 | G2 — Auth và database | Migrations, constraints/indexes/RLS, session server, hồ sơ, nền tảng test DB và RPC giao dịch | Đăng nhập/đăng xuất, dữ liệu thật; test hai tài khoản và liên kết chéo bị chặn; nền A10/A14. ĐÃ CODE 22/11/2026 trên feature/auth-database, chờ review/merge |
 | G2b — Ghi nhanh AI (ưu tiên mới 22/11/2026) | Màn "Ghi nhanh": nhiều ảnh + ghi chú gõ/nói → một API server (OpenAI, structured output, Zod) → bản nháp nhiều món → editor chung → `save_meal`; nhật ký tối thiểu đọc từ database; giới hạn lượt gọi/ảnh; thủ công là dự phòng | A08/A13/A14 cho text/ảnh/voice; gram người dùng ưu tiên hơn ước lượng ảnh; không lưu khi chưa xác nhận; mock trong CI, thử thật khi có key. ĐÃ CODE 22/11/2026 trên feature/ai-quick-log (tách từ feature/auth-database), chưa thử OpenAI thật |
-| G3 — Thư viện và khẩu phần | CRUD/tìm kiếm/yêu thích/gần đây; module tính decimal; editor dùng chung, override rõ ràng | A01/A07, unit test quy đổi và validation; dữ liệu tồn tại sau reload |
+| G3 — Thư viện và khẩu phần (ĐÃ CODE 24/11/2026 trên feature/food-library, cùng giao diện mobile phương án A) | CRUD/tìm kiếm/yêu thích/gần đây; module tính decimal; editor dùng chung, override rõ ràng | A01/A07, unit test quy đổi và validation; dữ liệu tồn tại sau reload |
 | G4 — Nhật ký | Thêm thủ công/thư viện, sửa/xóa bữa và từng món; snapshot; transaction, retry/idempotency | A02/A03/A09; không lưu nửa bữa hoặc tạo trùng; lịch sử độc lập thư viện |
-| G5 — Dashboard, mục tiêu, cân nặng | Tổng theo ngày, thiếu/vượt mục tiêu, mục tiêu có hiệu lực, CRUD cân nặng và biểu đồ | A11/A12; tổng từ item đúng, không dời ngày cũ khi đổi múi giờ |
+| G5 — Dashboard, mục tiêu, cân nặng (cân nặng database ĐÃ CODE 24/11/2026: CRUD, biểu đồ 7/30/90 ngày, trùng ngày hỏi trước, gợi ý tính lại mục tiêu theo goals.baseline_weight_kg; Dashboard/mục tiêu hiệu lực đã có từ G2b) | Tổng theo ngày, thiếu/vượt mục tiêu, mục tiêu có hiệu lực, CRUD cân nặng và biểu đồ | A11/A12; tổng từ item đúng, không dời ngày cũ khi đổi múi giờ |
 | G6 — Scanner | API ảnh nhãn, chọn cột/cơ sở, dữ liệu thiếu, chuyển kJ, review và lưu qua editor chung | A04–A06; fixture nhãn nhiều cột/mờ; kiểm tra thật khi có key |
 | G7 — AI text/ảnh và voice (phần lớn chuyển lên G2b; còn lại hoàn thiện/fallback) | API phân tích riêng từng chế độ; transcript có thể sửa; timeout/rate limit/fallback | A08/A13/A14; không có đường lưu bỏ qua xác nhận; mock CI và thử thật được báo riêng |
 | G8 — Nghiệm thu | Rà A01–A15, kiểm thử toàn luồng, accessibility cơ bản, README setup/deploy | Build/typecheck/lint và test quan trọng đạt; ghi rõ phần chưa kiểm chứng; chỉ deploy khi được giao |
@@ -168,6 +168,20 @@ Mock AI trong CI không chứng minh AI thật hoạt động. Ghi rõ lệnh/k�
 ## 7. Chốt kế hoạch và tiếp quản
 
 Đã nhận duyệt triển khai ngày 22/11/2026, bắt đầu G1 trên `feature/app-shell`. Không hỏi lại phê duyệt kế hoạch. Commit/push phải xin phép cho nội dung cụ thể. Khi chuyển Codex/Claude, tiếp tục giai đoạn đang dở, đọc checkpoint và kiểm tra file thực tế.
+
+## 7a. Vận động (đề xuất 24/11/2026, CHƯA duyệt code; cần bổ sung PRD trước)
+
+Người dùng hỏi ghi bài tập và số phút, tính calories theo cân nặng. Flow UI đã vẽ trong chat (4 bước: Ghi vận động → chọn bài → phút + cường độ → Tổng quan hiện dòng Vận động).
+
+- Công thức: kcal ≈ MET × cân nặng gần nhất (weight_logs) × giờ. Bảng MET theo Compendium of Physical Activities (chạy ~8 km/h ≈ 8,3; đi bộ nhanh, đạp xe, bơi, cầu lông, gym tạ, yoga…), ghi rõ là ước tính ±20–30%; cho sửa tay khi đồng hồ báo khác.
+- Dữ liệu: bảng `exercise_logs` (id, user_id, logged_date, activity_key, activity_name, minutes > 0, intensity, met, weight_kg_snapshot, kcal, kcal_manual_override, note, timestamps; RLS theo chủ; index user/date). Snapshot cân nặng và MET để lịch sử không đổi khi sửa cân nặng.
+- Quyết định cần người dùng chốt: có cộng kcal vận động vào "còn lại" không (đề xuất mặc định KHÔNG, vì mục tiêu đã tính theo mức vận động trong hồ sơ; có công tắc trong Cài đặt).
+- UI: nút + thêm lựa chọn "Vận động"; Tổng quan thêm dòng Vận động và danh sách buổi tập; sửa/xóa buổi tập.
+- Test: unit MET × kg × giờ, làm tròn; DB RLS; E2E ghi/sửa/xóa, ngày đang xem, công tắc cộng/không cộng.
+
+## 7b. Chuyển lên cloud (đã duyệt 24/11/2026)
+
+Sau giao diện A + kho món: phương án B (Supabase Free + Vercel Hobby). Checklist và phần người dùng tự làm: [KE-HOACH-CLOUD.md](KE-HOACH-CLOUD.md). Cần merge G2 → G2b → G3 vào main trước khi deploy.
 
 ## 8. Nhánh Git
 

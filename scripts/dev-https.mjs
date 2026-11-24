@@ -19,6 +19,8 @@ const option = (name, fallback) => {
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
 const proxyOnly = args.includes("--proxy-only");
+// --prod: chạy bản production đã build (`next start`) thay vì `next dev`: chuyển trang nhanh, không biên dịch từng trang.
+const production = args.includes("--prod");
 const httpsPort = Number(option("port", process.env.HTTPS_PORT ?? "3443"));
 const targetPort = Number(option("target", process.env.NEXT_PORT ?? "3000"));
 const certDir = path.resolve("certs");
@@ -73,7 +75,8 @@ let child;
 if (!proxyOnly) {
   // Chạy Next.js bằng chính Node hiện tại, không qua shell (tránh cảnh báo DEP0190 và lỗi trích dẫn tham số).
   const nextBin = path.resolve("node_modules", "next", "dist", "bin", "next");
-  child = spawn(process.execPath, [nextBin, "dev", "--webpack", "--hostname", "127.0.0.1", "--port", String(targetPort)], {
+  const nextArgs = production ? ["start"] : ["dev", "--webpack"];
+  child = spawn(process.execPath, [nextBin, ...nextArgs, "--hostname", "127.0.0.1", "--port", String(targetPort)], {
     stdio: "inherit", env: { ...process.env, DEV_ORIGINS: [process.env.DEV_ORIGINS, ...ips].filter(Boolean).join(",") },
   });
   child.on("exit", code => process.exit(code ?? 0));
@@ -110,13 +113,13 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 server.listen(httpsPort, "0.0.0.0", () => {
-  console.log(`\nHTTPS sẵn sàng (chuyển tiếp tới 127.0.0.1:${targetPort}):`);
+  console.log(`\nHTTPS sẵn sàng (chuyển tiếp tới 127.0.0.1:${targetPort}, ${production ? "bản production" : "chế độ dev"}):`);
   console.log(`  https://localhost:${httpsPort}`);
   for (const ip of lan) console.log(`  https://${ip}:${httpsPort}   ← mở trên điện thoại cùng Wi-Fi`);
   for (const ip of tailscale) console.log(`  https://${ip}:${httpsPort}   (chỉ khi điện thoại cũng bật Tailscale)`);
   if (!lan.length) console.log("  (Không thấy mạng LAN/Wi-Fi nào; kiểm tra máy tính đã kết nối mạng.)");
   console.log("Điện thoại sẽ cảnh báo chứng chỉ tự ký: bấm Nâng cao → Tiếp tục.");
-  console.log("Lần đầu mở mỗi trang có thể mất 10–30 giây để Next.js biên dịch.\n");
+  console.log(production ? "Bản production: sửa code xong phải chạy lại npm run phone.\n" : "Lần đầu mở mỗi trang có thể mất 10–30 giây để Next.js biên dịch.\n");
 });
 
 const shutdown = () => { server.close(); child?.kill(); process.exit(0); };

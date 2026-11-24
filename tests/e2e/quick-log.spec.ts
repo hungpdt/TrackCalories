@@ -25,7 +25,7 @@ test("ghi nhanh bằng ảnh + ghi chú: bản nháp nhiều món, bổ sung s�
   await expect(page.locator(".quick-capture").getByRole("alert")).toContainText("Thêm ít nhất một ảnh hoặc ghi chú");
 
   await page.getByLabel("Ghi chú thêm").fill("200g cơm trắng, 100g ức gà");
-  await page.locator("input[type=file][multiple]").setInputFiles(path.join(__dirname, "..", "fixtures", "meal.png"));
+  await page.locator(".quick-capture input[type=file][multiple]").setInputFiles(path.join(__dirname, "..", "fixtures", "meal.png"));
   await expect(page.getByRole("img", { name: "Ảnh bữa ăn 1" })).toBeVisible();
   await page.getByRole("button", { name: "Tạo bản nháp" }).click();
 

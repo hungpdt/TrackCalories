@@ -11,6 +11,19 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Phải hỏi trước mỗi commit/push; người dùng muốn agent riêng review trước push.
 - Người dùng chọn Supabase local bằng Docker. Chưa có project Supabase cloud, chưa deploy Vercel.
 
+## G3 + giao diện A (chưa commit, nhánh feature/food-library)
+
+- Người dùng chọn phương án giao diện mobile A (gọn và rõ) và flow nút "+" (bảng chọn trượt lên), rồi "Giao diện A + kho món". Commit trước khi tách nhánh: `fdd9943` trên feature/ai-quick-log (người dùng cho phép). `feature/food-library` tách từ `fdd9943` (phụ thuộc: G2 → G2b → G3 chưa merge main).
+- Lõi: `src/lib/nutrition/portion.ts` (hệ số khẩu phần khớp `save_meal`: cùng đơn vị, khẩu phần↔g/ml chỉ khi có khối lượng/thể tích, không đổi ml↔g), `src/lib/text/search.ts` (tìm không dấu, mọi từ). Unit test theo ví dụ PRD mục 5.
+- Kho món thật (bảng `foods`, không cần migration mới): `/foods` danh sách + tìm + lọc Tất cả/Yêu thích/Gần đây; bấm món mở bảng chi tiết (yêu thích, sửa, xóa có xác nhận) và chọn lượng ăn (stepper, chip ½/1/1,5/2 hoặc gram, đổi đơn vị khi có gram khẩu phần, tổng tính ngay, bữa, ngày) → server action `logFood` đọc món từ DB, kiểm đơn vị, lưu qua `save_meal` với `food_id`, request_id ổn định. `/foods/new`, `/foods/[id]/edit` form 4 cơ sở (100 g, 100 ml, 1 khẩu phần, 1 gói) + tên/gram khẩu phần. Sửa/xóa món không đổi snapshot bữa cũ.
+- Bản nháp AI/nhập tay: ô "Lưu món này vào kho"; server thêm món sau khi bữa lưu thành công, bỏ qua tên đã có (chuẩn hóa không dấu), có gram → cơ sở 100 g.
+- Giao diện A: `<dialog>` bottom sheet dùng chung (`components/ui/sheet.tsx`); nút + thanh dưới mở bảng Chụp ảnh / Chọn ảnh (input ngay trong bảng, ảnh chuyển sang Ghi nhanh qua bộ nhớ trang `pending-photos.ts`) / Nói, gõ (`?mode=note`, focus ô ghi chú sau khi dialog đóng) / Nhập tay (`?mode=manual`) / Chọn từ kho món; `?open=<mã>` tạo lại màn mỗi lần chọn kể cả khi đang ở /add-meal. Tổng quan mobile: ẩn thẻ macro trùng và thẻ quảng bá, ba ô P/C/F có thanh tiến độ, bữa ăn ngay dưới thẻ năng lượng, mục tiêu thu gọn (`<details>`, mở từ "Xem mục tiêu" hoặc `/#muc-tieu`), ẩn nút Ghi bữa ăn ở đầu trang (đã có +). Nhật ký hiện "Đã lưu bữa ăn." sau khi lưu. Bỏ kho món minh họa và prefill `?food=`; DemoProvider chỉ còn cân nặng.
+- Kiểm tra (Claude, 24/11/2026): lint, typecheck, build PASS; unit 50/50 (thêm portion/search); DB 35/35; Playwright 45 PASS + 1 skip có chủ ý (thêm `tests/e2e/food-library.spec.ts`: tạo món, tìm "pho bo", yêu thích, 1,5 tô = 675 kcal, 200 g cơm = 260, lọc gần đây; gram cho món khẩu phần 250 g = 225; sửa/xóa món không đổi nhật ký; lưu vào kho từ bản nháp không trùng; bảng + trên điện thoại: nhập tay, chụp ảnh, nói/gõ có focus, Esc đóng, kho món). Lỗi bắt được khi test: focus bị dialog trả về nút +; chọn từ bảng khi đang ở /add-meal không nhận ảnh (đã sửa bằng `?open`); thẻ cân nặng chen trên bữa ăn do `grid-row:3` cũ. Ảnh Pixel 7 mô phỏng: Tổng quan, bảng +, kho món, chi tiết, chọn lượng, form.
+- Cân nặng lưu database (24/11, chưa commit): người dùng báo số cân nặng đã nhập bị mất khi chạy lại vì trang Cân nặng còn là mock. Đã làm: `features/weight/queries.ts`, `actions.ts` (`saveWeight` mỗi ngày một số, ngày đã có trả conflict để hỏi; `deleteWeight`), trang mới (headline + thay đổi so với số đo ≥ 28 ngày trước, biểu đồ SVG 7/30/90/tất cả theo ngày thật, lịch sử, bottom sheet ghi/sửa/xóa, xác nhận trùng ngày), gợi ý "Tính lại" khi lệch ≥ 2 kg so với cân nặng lúc đặt mục tiêu → `/#muc-tieu`. Migration `20261124120000_goal_baseline_weight.sql`: `goals.baseline_weight_kg` + `save_profile_goal` ghi mốc này (trước đó mốc lấy từ nhật ký nên bị ghi đè khi sửa số đo cùng ngày). Bỏ hẳn DemoProvider/`lib/demo/data.ts`, chuyển `formatNumber`/`formatDate`/`Nutrients` sang `src/lib/format.ts`, bỏ banner "Dữ liệu minh họa". Sửa lỗi CSS phương án A ẩn nhầm nút "Ghi cân nặng" trên điện thoại (chỉ ẩn `.add-meal-link`). Kiểm tra: unit 50/50, DB 36/36 (thêm mốc cân nặng), Playwright 53 PASS + 1 skip (`tests/e2e/weight.spec.ts`), thử trên server dev:https của người dùng qua IP LAN: lưu 4 số đo, tải lại còn nguyên. Số đo cũ trên mock không khôi phục được; người dùng cần nhập lại.
+- Đề xuất Vận động ghi trong PLAN mục 7a (chưa duyệt code). Lưu ảnh món ăn ghi trong docs/KE-HOACH-CLOUD.md (sau cloud).
+- Phản hồi điện thoại thật (24/11): (1) chữ "N" góc trái và (2) "Rendering" khi chuyển tab là chỉ báo dev của Next → `devIndicators: false` trong next.config.ts; thêm `npm run phone` (build + `scripts/dev-https.mjs --prod` chạy `next start` sau HTTPS, đã thử cổng phụ: 0,09 s/trang). (3) LỖI: đang xem 23/11 bấm + / Ghi bữa ăn thì món lưu vào 24/11 vì link không mang ngày. Đã sửa: `addMealHref(date)`/`AddMealLink date` ở Tổng quan/Nhật ký, AppShell đọc `?date` (/ và /history) truyền vào bảng +, `/add-meal?date=` và `/foods?date=` đặt ngày mặc định cho bản nháp và chọn lượng. E2E mới tái hiện lỗi trước khi sửa (2 test hỏng đúng lỗi), sau sửa 47 PASS + 1 skip; kiểm trên server dev:https của người dùng qua https://192.168.1.6:3443: bản nháp mở ngày 23/11, lưu đúng ngày.
+- CHƯA: thử lại trên điện thoại thật sau các sửa này; kho món chưa có quét nhãn (G6) và chưa có index tìm kiếm không dấu ở DB (lọc ở client, đủ cho kho cá nhân ≤1000 món).
+
 ## G2b — Ghi nhanh AI
 
 - Migration `20261122150000_ai_usage.sql`: bảng `ai_usage` (RLS, client không truy cập) + RPC `consume_ai_quota(limit)` SECURITY DEFINER, đếm nguyên tử theo ngày ở múi giờ hồ sơ, giới hạn kẹp 1–500.
@@ -68,6 +81,11 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Đã kiểm tra UI desktop/mobile, review độc lập, sửa theo review (ngưỡng 1200 kcal chỉ chặn thâm hụt, parser số chặt `parseDecimal`, Vitest unit, Playwright channel cấu hình được, `.gitignore` có `.claude/` và `next-env.d.ts`). Commit `8e9bd29`, `65fcc71`, `4178854`, `07b6d9f`.
 - Lỗi nhỏ còn lại: xóa món mock không hỏi xác nhận; dropdown “Chọn món mẫu” trống khi mở từ `?food=`.
 
+## Dữ liệu món nạp tay (24/11/2026, chỉ DB local, không đổi code)
+
+- Người dùng duyệt 11 món (trứng luộc, cơm trắng, chuối chín, ổi, Pepsi không calo, bột cacao, thịt lợn băm, cá chép, tôm, ức gà, dầu đậu nành Simply), source `ai_estimate`, ghi trực tiếp vào `public.foods` của hai tài khoản của người dùng (11 món và 9 món, bỏ qua "Chuối chín"/"Trứng luộc" đã có). Thịt/cá/tôm/gà là số liệu sống.
+- Người dùng muốn **kho món chung** cho mọi tài khoản. Schema hiện chỉ có kho riêng (RLS theo user, FK meal_items(user_id, food_id)). Đề xuất: bảng catalog đọc chung, chỉ admin/seed ghi, khi dùng thì chép sang kho riêng; 11 món trên làm seed đầu tiên. CHƯA lập kế hoạch chi tiết, CHƯA duyệt.
+
 ## Vấn đề môi trường và giới hạn
 
 - Docker Desktop phải bật trước `npx supabase start`. Dự án `hu-tai-chinh` của người dùng tự chạy cùng Docker ở 543xx; không dừng nó.
@@ -76,6 +94,8 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - TypeScript 5.9 vì typescript-eslint chưa hỗ trợ 7; ESLint 9 sắp hết hỗ trợ.
 
 ## Việc tiếp theo
+
+- Sau khi xong giao diện A + kho món (đang chờ người dùng thử điện thoại và cho phép commit): chuyển lên cloud theo phương án B (Supabase Free + Vercel Hobby) người dùng đã duyệt 24/11/2026 trong phiên phụ. Checklist: [docs/KE-HOACH-CLOUD.md](KE-HOACH-CLOUD.md). Mỗi commit/push/merge/deploy vẫn xin phép.
 
 0. G2b đã code (xem trên). Tiếp: xin phép commit G2b, review độc lập, người dùng điền key OpenAI để thử thật; sau đó xin phép push/merge G2 rồi G2b vào main.
 1. (đã xong) Commit G2 trên `feature/auth-database` (đề xuất `feat(auth-database): add Supabase auth, schema and RLS`), chạy agent review độc lập, sửa theo review, rồi xin phép push và merge main.

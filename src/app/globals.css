@@ -142,3 +142,94 @@ a.profile { color: inherit; text-decoration: none; }
 .macro-remaining dd span { font-size: .78rem; color: var(--muted); }
 .macro-remaining .over { border-color: #f0c9ca; background: #fff6f6; }
 .macro-remaining .over dd strong, .macro-remaining .over dd span { color: #a04b25; }
+
+/* Nút + thanh dưới (giờ là button mở bảng chọn) */
+.mobile-nav>button.mobile-add{display:flex;align-items:center;justify-content:center;background:var(--accent);color:white;border:0;border-radius:14px;width:46px;min-width:46px;height:46px;flex:0 0 46px;padding:0;box-shadow:0 4px 10px #147d6425}
+
+/* Bảng trượt lên dùng <dialog> */
+.sheet{border:0;padding:0;margin:auto auto 0;width:100%;max-width:560px;max-height:88vh;background:transparent;color:inherit}
+.sheet::backdrop{background:rgba(20,35,28,.45)}
+.sheet-body{background:white;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+.sheet-handle{width:40px;height:4px;border-radius:2px;background:#d4ddd8;margin:0 auto 10px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sheet-head h2{margin:0;font-size:1.1rem}
+.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.sheet-actions .button{flex:1 1 120px}
+@media(min-width:701px){.sheet{margin:auto}.sheet-body{border-radius:20px}}
+.add-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:92px;border:1px solid var(--line);border-radius:14px;background:#fbfcfb;color:var(--ink);font-size:.95rem;font-weight:600;cursor:pointer;padding:10px}
+.add-option svg{color:var(--accent)}
+.add-option.wide{grid-column:1 / -1;flex-direction:row;min-height:56px}
+.add-option:focus-within{outline:3px solid #3aa58a;outline-offset:2px}
+
+/* Kho món */
+.food-list{list-style:none;margin:0;padding:6px 14px}
+.food-list li+li{border-top:1px solid var(--line)}
+.food-row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 0;background:none;border:0;text-align:left;color:inherit;cursor:pointer}
+.food-row .food-symbol{width:40px;height:40px;border-radius:11px}
+.food-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.food-row-main b{font-weight:650;overflow-wrap:anywhere;display:flex;align-items:center;gap:6px}
+.favorite-mark{color:#b95f6b;flex-shrink:0}
+.food-detail{display:grid;gap:10px}
+.food-detail-box{background:#f3f7f4;border-radius:14px;padding:14px;display:grid;gap:4px}
+.food-detail-kcal{font-size:1.6rem}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:white;color:var(--ink);font-size:.9rem}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:#9fd2bd;color:var(--accent);font-weight:650}
+.amount-picker{display:grid;gap:12px}
+.amount-stepper{display:flex;align-items:center;gap:10px}
+.amount-stepper .button{width:48px;min-width:48px;padding:0}
+.amount-input{flex:1;display:flex;align-items:baseline;justify-content:center;gap:6px;border:1px solid #d9e3dd;border-radius:12px;padding:6px 10px}
+.amount-input input{width:100%;max-width:120px;border:0;text-align:right;font-size:1.6rem;font-weight:700;background:none;color:var(--ink)}
+.amount-input span{color:var(--muted)}
+.amount-total{margin:0;text-align:center;font-size:1rem}
+.food-form{max-width:720px}
+.basis-field{border:0;padding:0;margin:0 0 19px}
+.basis-field legend{font-weight:600;font-size:.875rem;margin-bottom:8px;padding:0}
+.save-to-library{display:flex;align-items:center;gap:10px;min-height:44px;font-size:.9rem;margin:2px 0}
+.save-to-library input{width:20px;height:20px;accent-color:var(--accent)}
+.saved-notice{background:#e7f4ed;color:#1b5e45;border-radius:10px;padding:10px 14px;margin:0 0 16px;font-weight:600}
+
+/* Phương án A trên điện thoại: Tổng quan gọn, ít cuộn */
+.macro-remaining .mini-bar{display:block;height:5px;border-radius:3px;background:#edf1ee;margin-top:6px;overflow:hidden}
+.macro-remaining .mini-bar>i{display:block;height:100%;background:var(--macro)}
+.home-goals-toggle>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);background:white;font-weight:650;min-height:52px}
+.home-goals-toggle>summary::-webkit-details-marker{display:none}
+.home-goals-toggle>summary::after{content:"Xem";color:var(--accent);font-size:.875rem}
+.home-goals-toggle[open]>summary::after{content:"Thu gọn"}
+.home-goals-toggle[open]>summary{margin-bottom:12px}
+@media(max-width:700px){
+  .page-heading .eyebrow,.page-heading .muted{display:none}
+  .page-heading{margin-bottom:16px;flex-wrap:wrap;gap:12px}
+  .page-heading h1{font-size:1.5rem;margin:0}
+  .dashboard-grid .macro-card,.dashboard-side .quick-card{display:none}
+  .energy-card .section-heading{margin-bottom:10px}
+  .energy-content{padding:0 0 14px;gap:16px}
+  .calorie-ring{width:132px;height:132px;padding:9px}
+  .calorie-ring strong{font-size:1.6rem}
+  .energy-detail strong{font-size:1.7rem}
+  .filter-bar{flex-direction:column}
+  .search-field{max-width:none}
+}
+@media(max-width:700px){
+  .dashboard-grid .daily-meals{grid-row:auto}
+  /* Đã có nút + ở thanh dưới: ẩn nút Ghi bữa ăn ở đầu trang (các nút khác như Ghi cân nặng vẫn hiện). */
+  .page-heading .heading-action>.add-meal-link{display:none}
+}
+.macro-remaining dd{flex-direction:column;align-items:flex-start;gap:0}
+
+/* Cân nặng (database) */
+.recalc-banner{background:#fff7e6;border:1px solid #f1dfb8;color:#5c4510;border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+.recalc-banner p{margin:0 0 6px}
+.weight-summary{display:grid;gap:14px}
+.weight-headline b{font-weight:700}
+.trend-down{color:var(--accent)}
+.trend-up{color:#a04b25}
+.range-switch{align-self:flex-start;flex-wrap:wrap}
+.chart-label{font-size:22px;fill:var(--muted)}
+.weight-list{list-style:none;margin:0;padding:0}
+.weight-list li{display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.weight-list li:last-child{border-bottom:0}
+.weight-list li span{flex:1;color:var(--muted)}
+.weight-form{display:grid;gap:4px}
+.weight-input{font-size:1.6rem!important;font-weight:700}

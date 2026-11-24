@@ -1,13 +1,14 @@
 "use client";
 
-import { uuid } from "@/lib/uuid";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Camera, ImagePlus, Mic, MicOff, Pencil, ScanLine, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { PageHeading } from "@/components/ui/shared";
+import { uuid } from "@/lib/uuid";
 import type { AiDraft, SaveMealInput } from "@/lib/ai/draft";
 import { DraftEditor, emptyItem, itemFromAi, type EditorItem } from "./draft-editor";
 import { compressImage } from "./image";
+import { takePendingPhotos } from "./pending-photos";
 import { useSpeech } from "./use-speech";
 
 const MAX_IMAGES = 4;
@@ -17,8 +18,8 @@ const CLIENT_TIMEOUT_MS = 75_000;
 type Photo = { id: string; blob: Blob; url: string };
 type Stage = { kind: "capture" } | { kind: "editor"; items: EditorItem[]; warnings: string[]; fromAi: boolean };
 
-export function QuickLog({ today, defaultMealType, prefill }: { today: string; defaultMealType: SaveMealInput["mealType"]; prefill?: EditorItem }) {
-  const [stage, setStage] = useState<Stage>(prefill ? { kind: "editor", items: [prefill], warnings: [], fromAi: false } : { kind: "capture" });
+export function QuickLog({ today, defaultMealType, start }: { today: string; defaultMealType: SaveMealInput["mealType"]; start?: "manual" | "note" }) {
+  const [stage, setStage] = useState<Stage>(start === "manual" ? { kind: "editor", items: [emptyItem()], warnings: [], fromAi: false } : { kind: "capture" });
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,6 +28,7 @@ export function QuickLog({ today, defaultMealType, prefill }: { today: string; d
   const [info, setInfo] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
+  const noteInput = useRef<HTMLTextAreaElement>(null);
   const photosRef = useRef(photos);
 
   // Giải phóng blob URL của ảnh xem trước khi rời màn.
@@ -39,7 +41,18 @@ export function QuickLog({ today, defaultMealType, prefill }: { today: string; d
   }, []);
   const speech = useSpeech(appendTranscript);
 
-  async function addFiles(files: FileList | null) {
+  // Từ bảng "+": nhận ảnh đã chọn ở trang trước, hoặc đặt con trỏ vào ô ghi chú.
+  useEffect(() => {
+    const files = takePendingPhotos();
+    if (files.length) void addFiles(files);
+    // Đợi bảng "+" đóng xong: <dialog> trả focus về nút + khi đóng, đè lên focus đặt quá sớm.
+    const focusTimer = start === "note" ? window.setTimeout(() => noteInput.current?.focus(), 150) : undefined;
+    return () => window.clearTimeout(focusTimer);
+    // Chỉ chạy một lần khi mở màn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function addFiles(files: FileList | File[] | null) {
     if (!files?.length) return;
     setError("");
     const room = MAX_IMAGES - photos.length;
@@ -136,7 +149,7 @@ export function QuickLog({ today, defaultMealType, prefill }: { today: string; d
 
       <label className="field note-field">Ghi chú thêm
         <span className="field-hint">Gram, thành phần, cách nấu… Ví dụ: “200g cơm, 150g ức gà áp chảo ít dầu, rau luộc”. Số gram bạn ghi được ưu tiên hơn ước lượng từ ảnh.</span>
-        <textarea rows={4} maxLength={MAX_NOTE} value={note} onChange={event => setNote(event.target.value)} placeholder="Gõ hoặc bấm micro để nói" />
+        <textarea ref={noteInput} rows={4} maxLength={MAX_NOTE} value={note} onChange={event => setNote(event.target.value)} placeholder="Gõ hoặc bấm micro để nói" />
       </label>
       <div className="capture-actions">
         <button type="button" className={`button secondary ${speech.listening ? "listening" : ""}`} disabled={speech.status === "unknown"}
@@ -157,7 +170,7 @@ export function QuickLog({ today, defaultMealType, prefill }: { today: string; d
 
     <section className="other-methods" aria-label="Cách nhập khác">
       <button type="button" className="method-chip" onClick={() => { speech.stop(); setStage({ kind: "editor", items: [emptyItem()], warnings: [], fromAi: false }); }}><Pencil size={18} /> Nhập thủ công</button>
-      <span className="method-chip disabled" aria-disabled="true"><BookOpen size={18} /> Kho món <small>(sắp có)</small></span>
+      <Link className="method-chip" href={`/foods?date=${today}`}><BookOpen size={18} /> Chọn từ kho món</Link>
       <span className="method-chip disabled" aria-disabled="true"><ScanLine size={18} /> Quét nhãn <small>(sắp có)</small></span>
     </section>
   </>;
