@@ -107,6 +107,21 @@ test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", asy
   await expect(page.locator(".energy-card")).toContainText("600");
   await expect(page.locator(".energy-card")).toContainText("2.159");
   await expect(page.locator(".daily-meals")).toContainText("phở bò");
+  // Mục tiêu duy trì: P 112, C 405, F 77 g; đã ăn P 40, C 80, F 20 g.
+  const remaining = page.locator(".macro-remaining");
+  await expect(remaining.locator(".protein")).toContainText("72 g còn lại");
+  await expect(remaining.locator(".carbs")).toContainText("325 g còn lại");
+  await expect(remaining.locator(".fat")).toContainText("57 g còn lại");
+
+  await page.goto("/add-meal");
+  await page.getByLabel("Ghi chú thêm").fill("2000g mỡ");
+  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/\/history/);
+  await page.goto("/");
+  await expect(remaining.locator(".fat")).toContainText("43 g vượt");
+  await expect(remaining.locator(".fat")).toHaveClass(/over/);
+  await expect(page.locator(".energy-card")).toContainText("Vượt mục tiêu của bạn");
 });
 
 test("API ghi nhanh từ chối request không hợp lệ và trả JSON", async ({ page, playwright, baseURL }) => {
@@ -176,4 +191,14 @@ test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồ
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByText("Chưa tải được nội dung")).toHaveCount(0);
   }
+});
+
+test("trong lúc AI chạy hiện số giây và hướng dẫn chờ, xong thì mở bản nháp", async ({ page }) => {
+  await page.goto("/add-meal");
+  await page.getByLabel("Ghi chú thêm").fill("[chậm] 100g xôi");
+  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await expect(page.getByRole("button", { name: /AI đang phân tích… [12]s/ })).toBeVisible();
+  await expect(page.getByText("Thường mất 10–30 giây", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kiểm tra bản nháp" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator(".draft-item").first().getByLabel("Tên món")).toHaveValue("xôi");
 });

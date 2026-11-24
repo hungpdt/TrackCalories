@@ -38,6 +38,16 @@ export function Dashboard({ targets: goal, date, meals, latestWeight }: {
             <span className="small muted">Tổng từ các món đã lưu trong ngày.</span>
           </div>
         </div>
+        {goal && <dl className="macro-remaining" aria-label="Protein, carb, chất béo còn lại trong ngày">
+          {([["protein", "Protein"], ["carbs", "Carb"], ["fat", "Chất béo"]] as const).map(([key, label]) => {
+            const left = goal[key] - total[key];
+            // Ghi rõ "còn lại"/"vượt" bằng chữ, không chỉ dựa vào màu.
+            return <div key={key} className={`${key}${left < 0 ? " over" : ""}`}>
+              <dt><span className="macro-dot" aria-hidden="true" />{label}</dt>
+              <dd><strong>{formatNumber(Math.abs(left))} g</strong> <span>{left < 0 ? "vượt" : "còn lại"}</span></dd>
+            </div>;
+          })}
+        </dl>}
         <div className="energy-footer"><span className="status-dot" />{itemCount} món đã ghi trong ngày<Link href="#muc-tieu">Xem mục tiêu</Link></div>
       </section>
       <section className="card macro-card">

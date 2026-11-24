@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { initialFoods } from "@/lib/demo/data";
 import type { EditorItem } from "./draft-editor";
 
@@ -10,7 +11,7 @@ export function emptyItemFromDemoFood(id: string | undefined): EditorItem | unde
   if (!food) return undefined;
   const show = (value: number) => String(value).replace(".", ",");
   return {
-    key: crypto.randomUUID(), name: food.name, grams: "", portionNote: food.serving,
+    key: uuid(), name: food.name, grams: "", portionNote: food.serving,
     kcal: show(food.kcal), protein: show(food.protein), carbs: show(food.carbs), fat: show(food.fat),
     source: "manual", needsReview: true, assumptions: ["Số liệu từ kho món minh họa, hãy kiểm tra trước khi lưu"],
     basis: { grams: null, kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat },

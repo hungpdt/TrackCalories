@@ -1,6 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 import { ContentFilterFinishReasonError, LengthFinishReasonError } from "openai/error";
+import type { ReasoningEffort } from "openai/resources/shared";
 import { zodTextFormat } from "openai/helpers/zod";
 import { aiDraftSchema, sanitizeDraft, type AiDraft } from "./draft";
 
@@ -31,17 +32,26 @@ export function isAiConfigured() {
 }
 
 export async function analyzeMeal({ images, note }: { images: MealImage[]; note: string }): Promise<AiDraft> {
-  if (process.env.AI_PROVIDER === "mock") return mockDraft(note, images.length);
+  if (process.env.AI_PROVIDER === "mock") {
+    // "[chậm]" trong ghi chú: giả lập AI phản hồi chậm để test trạng thái chờ (chỉ ở chế độ mock).
+    if (note.includes("[chậm]")) await new Promise(resolve => setTimeout(resolve, 2500));
+    return mockDraft(note.replace("[chậm]", ""), images.length);
+  }
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
   if (!apiKey || !model) throw new AiError("not_configured");
 
-  const client = new OpenAI({ apiKey, timeout: 25_000, maxRetries: 1 }); // tối đa ~50 s, dưới maxDuration 60 s của route
+  // Một lần gọi, tối đa 50 s (dưới maxDuration 60 s của route). Không tự gọi lại khi hết giờ: chỉ làm người dùng chờ gấp đôi.
+  const client = new OpenAI({ apiKey, timeout: 50_000, maxRetries: 0 });
+  // Model suy luận (gpt-5*, o*) mặc định suy nghĩ lâu (đo được ~25–30 s/lần); ước tính dinh dưỡng chỉ cần mức thấp.
+  const reasoningModel = /^(gpt-5|o\d)/i.test(model);
+  const effort = (process.env.OPENAI_REASONING_EFFORT || "low") as ReasoningEffort;
   try {
     const response = await client.responses.parse({
       model,
       store: false,
       instructions: INSTRUCTIONS,
+      ...(reasoningModel ? { reasoning: { effort } } : {}),
       input: [{
         role: "user",
         content: [

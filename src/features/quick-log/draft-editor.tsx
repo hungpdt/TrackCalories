@@ -1,5 +1,7 @@
 "use client";
 
+import { uuid } from "@/lib/uuid";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Plus, RotateCcw, Trash2 } from "lucide-react";
@@ -19,7 +21,7 @@ export type EditorItem = {
 
 const show = (value: number | null) => value === null ? "" : String(value).replace(".", ",");
 const num = (value: string) => value.trim() ? parseDecimal(value) : null;
-const newKey = () => crypto.randomUUID();
+const newKey = () => uuid();
 
 export function itemFromAi(item: AiItem): EditorItem {
   return {
@@ -111,7 +113,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
     };
     // Cùng nội dung → cùng request_id (retry không tạo trùng); nội dung đổi → request mới.
     const json = JSON.stringify(payload);
-    if (lastAttempt.current?.json !== json) lastAttempt.current = { json, id: crypto.randomUUID() };
+    if (lastAttempt.current?.json !== json) lastAttempt.current = { json, id: uuid() };
     const requestId = lastAttempt.current.id;
     setError("");
     startSaving(async () => {

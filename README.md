@@ -50,6 +50,12 @@ npm run test:e2e
 - `npm run test:e2e`: Playwright trên desktop và mô phỏng Pixel 7, cần Supabase local và `.env.local`. Test tự khởi động server riêng cổng 3100 nên không chạy được khi đang có một `next dev` khác trong thư mục. Máy local mặc định dùng Edge; khi biến `CI` được đặt dùng Chromium của Playwright (cần `npx playwright install chromium`); đặt `PLAYWRIGHT_CHANNEL` để chọn trình duyệt khác.
 - `npm run gen:types`: sinh lại `src/lib/supabase/database.types.ts` sau khi đổi migration.
 
+### Thử trên điện thoại cùng Wi-Fi
+
+- `npm run dev:https` (khuyên dùng, có nút Nói): tạo chứng chỉ tự ký `certs/` (Git bỏ qua, bằng OpenSSL của Git for Windows, không cài gì vào hệ thống) cho localhost và IP LAN, chạy `next dev` ở 127.0.0.1:3000 và cổng HTTPS ở `https://<IP máy>:3443`. Điện thoại cảnh báo chứng chỉ: bấm Nâng cao → Tiếp tục. Dừng mọi `next dev` khác trong thư mục trước khi chạy.
+- `npm run dev:lan`: mở `http://<IP máy>:3000`; ảnh và AI dùng được nhưng trình duyệt không cho micro (nút Nói báo lý do, dùng micro bàn phím).
+- IP LAN được phép trong `allowedDevOrigins` qua biến `DEV_ORIGINS` (dev:https tự thêm IP hiện tại).
+
 `npm start` cần chạy build trước. Lockfile được lưu trong Git; dùng npm ci để cài cùng phiên bản.
 
 Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại lỗi tạo tiến trình xử lý CSS; Webpack build đã chạy đạt. TypeScript dùng 5.9 vì typescript-eslint chưa hỗ trợ TypeScript 7. ESLint 9 tương thích nhưng npm báo hết hỗ trợ; cần đánh giá nâng cùng bộ plugin ở đợt bảo trì.

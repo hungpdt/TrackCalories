@@ -26,3 +26,6 @@ Thumbs.db
 
 # Next.js regenerates this per dev/build
 next-env.d.ts
+
+# Chứng chỉ tự ký cho thử HTTPS trong LAN (npm run dev:https)
+certs/

@@ -134,3 +134,11 @@ a.profile { color: inherit; text-decoration: none; }
 }
 .recalc { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; margin: 0 0 14px; background: #fff7e6; border: 1px solid #f1dfb8; border-radius: 10px; }
 .recalc p { flex-basis: 100%; margin: 0; }
+.macro-remaining { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
+.macro-remaining > div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fbfcfb; min-width: 0; }
+.macro-remaining dt { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
+.macro-remaining dd { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.macro-remaining dd strong { font-size: 1.1rem; }
+.macro-remaining dd span { font-size: .78rem; color: var(--muted); }
+.macro-remaining .over { border-color: #f0c9ca; background: #fff6f6; }
+.macro-remaining .over dd strong, .macro-remaining .over dd span { color: #a04b25; }
