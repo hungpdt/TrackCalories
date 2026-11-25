@@ -14,7 +14,9 @@
     "gen:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "dev:lan": "next dev --webpack --hostname 0.0.0.0",
     "dev:https": "node scripts/dev-https.mjs",
-    "phone": "npm run build && node scripts/dev-https.mjs --prod"
+    "phone": "npm run build && node scripts/dev-https.mjs --prod",
+    "backup": "node scripts/backup.mjs",
+    "restore": "node scripts/restore.mjs"
   },
   "engines": {
     "node": ">=20.9.0"

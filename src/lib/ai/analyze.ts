@@ -27,12 +27,17 @@ Rules:
 - warnings (Vietnamese): problems such as blurry photo, no food visible, unclear note.
 - Item names in Vietnamese, short and specific (e.g. "Cơm trắng", "Ức gà áp chảo").`;
 
+/** AI giả lập chỉ dùng ở máy local/CI; trên Vercel (VERCEL=1) luôn bỏ qua để không vô tình trả số giả. */
+export function isMockAi() {
+  return process.env.AI_PROVIDER === "mock" && !process.env.VERCEL;
+}
+
 export function isAiConfigured() {
-  return process.env.AI_PROVIDER === "mock" || Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
+  return isMockAi() || Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL);
 }
 
 export async function analyzeMeal({ images, note }: { images: MealImage[]; note: string }): Promise<AiDraft> {
-  if (process.env.AI_PROVIDER === "mock") {
+  if (isMockAi()) {
     // "[chậm]" trong ghi chú: giả lập AI phản hồi chậm để test trạng thái chờ (chỉ ở chế độ mock).
     if (note.includes("[chậm]")) await new Promise(resolve => setTimeout(resolve, 2500));
     return mockDraft(note.replace("[chậm]", ""), images.length);

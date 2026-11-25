@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { signupEnabled } from "@/lib/signup";
 
 export type AuthState = { error?: string; email?: string };
 
@@ -29,6 +30,7 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
 export async function signUp(_: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = read(formData);
   const email = String(formData.get("email") ?? "");
+  if (!signupEnabled()) return { error: "Ứng dụng đang tắt đăng ký tài khoản mới.", email };
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp(parsed.data);

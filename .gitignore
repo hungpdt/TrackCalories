@@ -29,3 +29,6 @@ next-env.d.ts
 
 # Chứng chỉ tự ký cho thử HTTPS trong LAN (npm run dev:https)
 certs/
+
+# Bản sao lưu dữ liệu sức khỏe (npm run backup): chỉ giữ trên máy/Drive, không đưa lên Git
+backups/

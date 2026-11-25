@@ -48,7 +48,7 @@ Ngoài phạm vi MVP: cộng đồng, thương mại/thu phí, barcode, đồng 
 - Hiện kết quả duy trì, mức nạp, thâm hụt/thặng dư theo ngày và tuần cùng gram protein, carb, fat. Ghi rõ công thức, giả định và giới hạn. Hỏi món thường ăn, món yêu thích và dị ứng. Gợi ý ưu tiên món quen, chỉ gợi ý món khi có cơ sở kiểm tra dị ứng hoặc khi người dùng không khai báo dị ứng.
 - Một bản ghi cân nặng/ngày; nhập lại ngày đã có thì đề nghị cập nhật. Loại bữa: sáng, trưa, tối, phụ.
 - Voice dùng Browser Speech Recognition khi khả dụng, có sửa transcript và nhập text dự phòng. Nếu cần voice trên trình duyệt không hỗ trợ, triển khai transcription phía server như phần mở rộng kỹ thuật, không giả vờ rằng voice luôn hoạt động.
-- Ảnh dùng để phân tích, không lưu lâu dài mặc định. Nếu sau này cần giữ ảnh, dùng private storage và URL hết hạn.
+- Ảnh dùng để phân tích. Cập nhật 24/11/2026 (người dùng yêu cầu): ảnh đầu tiên của bữa được lưu làm ảnh món trong storage riêng tư (`meal-photos`, chỉ chủ tài khoản đọc/ghi), xem qua route server có kiểm tra đăng nhập; xóa bữa xóa ảnh. Các ảnh khác chỉ dùng để phân tích rồi bỏ.
 - Không có bộ dữ liệu phở/bún/cơm “chuẩn” đã được cấp. Dữ liệu demo phải ghi là minh họa/ước tính, không trộn vào thư viện thật tự động.
 
 ## 4. Luồng sử dụng và sáu màn hình

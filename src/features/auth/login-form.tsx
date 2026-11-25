@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { Sprout } from "lucide-react";
 import { signIn, signUp, type AuthState } from "./actions";
 
-export function LoginForm() {
+export function LoginForm({ signupEnabled = true }: { signupEnabled?: boolean }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [signInState, signInAction, signingIn] = useActionState<AuthState, FormData>(signIn, {});
   const [signUpState, signUpAction, signingUp] = useActionState<AuthState, FormData>(signUp, {});
@@ -16,10 +16,10 @@ export function LoginForm() {
       <p className="auth-brand"><Sprout size={24} aria-hidden="true" /> tcgm</p>
       <h1 id="auth-title">{mode === "signin" ? "Đăng nhập" : "Tạo tài khoản"}</h1>
       <p className="muted">Dữ liệu bữa ăn, mục tiêu và cân nặng được lưu riêng theo tài khoản của bạn.</p>
-      <div className="segmented auth-switch" role="group" aria-label="Chọn thao tác">
+      {signupEnabled && <div className="segmented auth-switch" role="group" aria-label="Chọn thao tác">
         <button type="button" aria-pressed={mode === "signin"} onClick={() => setMode("signin")}>Đăng nhập</button>
         <button type="button" aria-pressed={mode === "signup"} onClick={() => setMode("signup")}>Tạo tài khoản</button>
-      </div>
+      </div>}
       <form action={mode === "signin" ? signInAction : signUpAction} className="auth-form" key={mode}>
         <label className="field">Email
           <input name="email" type="email" autoComplete="email" required maxLength={254} defaultValue={state.email} />

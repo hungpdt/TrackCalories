@@ -67,13 +67,33 @@ Scripts dev/build dùng Webpack vì Turbopack trên máy Windows hiện tại l�
 - **Database:** `profiles`, `goals`, `foods`, `meals`, `meal_items`, `weight_logs`, `mutation_requests` với ràng buộc, index và RLS theo `auth.uid()`. Bữa ăn chỉ ghi qua RPC `save_meal` (một transaction, chống trùng theo `request_id`, phát hiện sửa bản cũ bằng `revision`, tự tính tổng từ cơ sở × hệ số, không tự đổi ml↔g). Xóa món trong thư viện chỉ đặt `food_id` về null, giữ snapshot.
 - **Hồ sơ và mục tiêu:** luồng thiết lập trên trang chủ lưu vào tài khoản qua RPC `save_profile_goal`; server tự tính lại mục tiêu từ hồ sơ. Mục tiêu có hiệu lực từ hôm nay theo múi giờ hồ sơ (mặc định Asia/Ho_Chi_Minh); lưu lại trong cùng ngày thì cập nhật phiên bản của ngày đó, ngày cũ giữ mục tiêu cũ. Cân nặng nhập trong hồ sơ ghi vào nhật ký cân nặng.
 - Mức nạp dưới 1.200 kcal chỉ được hiện cho Duy trì/Tăng, kèm lưu ý hỏi chuyên gia; thâm hụt dưới ngưỡng bị chặn. Ô số chấp nhận "74,5" hoặc "74.5", từ chối dạng hàng nghìn "1.200".
-- **Ghi nhanh (`/add-meal`):** chụp/chọn tối đa 4 ảnh (thu nhỏ còn cạnh 1600 px JPEG trên máy, ảnh không được lưu) + ghi chú gõ hoặc nói (Web Speech API `vi-VN`, chỉ xin micro khi bấm, sửa được trước khi gửi) → `POST /api/ai/quick-log` (cần đăng nhập; tối đa 3 MB/ảnh, 8 MB tổng, 1000 ký tự; HEIC báo đổi JPEG/PNG; trừ lượt qua RPC `consume_ai_quota`) → OpenAI Responses API với structured output (Zod), `store: false`, timeout 60 s, 1 lần thử lại → bản nháp nhiều món (gram, kcal, P/C/F nullable, giả định, cần kiểm tra). Editor chung: ô trống là chưa biết (bắt buộc bổ sung, không thành 0), đổi gram có nút "Tính lại theo gram", lưu qua `save_meal` với `request_id` cố định cho cùng nội dung. Nhập thủ công dùng cùng editor; Kho món và Quét nhãn hiển thị "sắp có".
-- **Nhật ký và Dashboard** đọc bữa thật từ database theo `?date=`; Dashboard dùng mục tiêu có hiệu lực của ngày đang xem (ngày chưa có mục tiêu chỉ hiện tổng). Xóa bữa có hỏi xác nhận. Sửa bữa đã lưu chưa có (G4).
-- **Vẫn là dữ liệu minh họa** (bộ nhớ phiên trang): Kho món, trang Cân nặng. Quét nhãn chưa có.
+- **Ghi nhanh (`/add-meal`):** chụp/chọn tối đa 4 ảnh + ghi chú gõ hoặc nói → `POST /api/ai/quick-log` (cần đăng nhập, giới hạn lượt/ngày qua RPC `consume_ai_quota`) → OpenAI structured output → bản nháp nhiều món → editor chung → `save_meal`. Ảnh đầu tiên được lưu riêng tư làm ảnh món (bucket `meal-photos`, xem qua `/api/meals/<id>/photo`, xóa bữa xóa ảnh).
+- **Trang chủ, chi tiết bữa, Tiến độ, Kho món, cân nặng:** dữ liệu thật từ database; sửa bữa đã lưu giữ nguyên món không đổi. Quét nhãn chưa có (G6).
+
+## Sao lưu và khôi phục
+
+Gói Supabase Free không tự sao lưu. Chạy hằng tuần và cất thư mục kết quả ở nơi an toàn (ví dụ Google Drive); **không đưa lên GitHub** (dữ liệu sức khỏe, `backups/` đã nằm trong `.gitignore`).
+
+```powershell
+npm run backup -- --env .env.production.local
+```
+
+- Đăng nhập bằng email/mật khẩu của chính bạn (gõ trong terminal, không lưu); chỉ dùng URL + publishable key trong file env, không cần service-role key.
+- Kết quả: `backups/<ngày-giờ>/data.json` (hồ sơ, mục tiêu, kho món, bữa ăn, cân nặng) và `photos/`.
+- Khôi phục vào một tài khoản **chưa có dữ liệu** (ví dụ chuyển từ máy lên cloud): `npm run restore -- backups/<thư-mục> --env .env.production.local`. Không có `--env` thì dùng `.env.local` (Supabase local).
+
+## Triển khai cloud (Supabase + Vercel)
+
+Checklist đầy đủ: `docs/KE-HOACH-CLOUD.md`. Tóm tắt:
+
+1. Supabase: `npx supabase link --project-ref <ref>` rồi `npx supabase db push` (tạo bảng, RLS, bucket ảnh riêng tư). Auth: Site URL/Redirect URL = địa chỉ Vercel; mẫu email xác nhận trỏ `/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
+2. Vercel: biến môi trường `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_DAILY_LIMIT`, `SIGNUP_ENABLED`. Không đặt `AI_PROVIDER` (trên Vercel chế độ mock luôn bị bỏ qua) hay `DEV_ORIGINS`.
+3. Sau khi tạo tài khoản của mình: tắt "Allow new users to sign up" trong Supabase Auth và đặt `SIGNUP_ENABLED=false` (ẩn nút Tạo tài khoản), redeploy.
+4. Project Free bị tạm dừng sau khoảng một tuần không dùng: bật lại trên supabase.com, dữ liệu không mất.
 
 ## Môi trường các giai đoạn sau
 
-G6–G7 cần OpenAI key/model trong `.env.local` (chỉ phía server, không có tiền tố `NEXT_PUBLIC_`). Chưa có project Supabase cloud hay deploy Vercel; chỉ làm khi được giao.
+G6–G7 cần OpenAI key/model trong `.env.local` hoặc biến môi trường Vercel (chỉ phía server, không có tiền tố `NEXT_PUBLIC_`).
 
 ## Làm việc giữa Codex và Claude
 
