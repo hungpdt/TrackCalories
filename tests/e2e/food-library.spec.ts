@@ -75,6 +75,33 @@ test("tạo món, tìm không dấu, yêu thích, thêm 1,5 tô và 200 g vào n
   await expect(page.locator(".food-row")).toHaveCount(2);
 });
 
+test("sửa bữa từ kho mà không đổi gì vẫn giữ 1,5 × 1 tô và liên kết kho; đổi kcal thì giữ lượng đã ăn", async ({ page }) => {
+  await createFood(page, pho);
+  await page.getByRole("button", { name: /Phở bò/ }).click();
+  await page.getByRole("dialog", { name: "Phở bò" }).getByRole("button", { name: "Thêm vào bữa" }).click();
+  const amount = page.getByRole("dialog", { name: /Ăn bao nhiêu Phở bò/ });
+  await amount.getByRole("button", { name: "1,5" }).click();
+  await amount.getByRole("button", { name: "Lưu vào nhật ký" }).click();
+  await expect(page).toHaveURL(/saved=1/);
+
+  await page.locator(".meal-card-title").first().click();
+  await expect(page).toHaveURL(/\/meals\/[0-9a-f-]+$/);
+  const items = page.locator(".detail-items");
+  await expect(items).toContainText("1,5 × 1 tô");
+  await page.getByRole("link", { name: "Sửa" }).click();
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/\/meals\/[0-9a-f-]+$/);
+  await expect(items).toContainText("1,5 × 1 tô");
+  await expect(page.locator("main")).toContainText("675");
+
+  await page.getByRole("link", { name: "Sửa" }).click();
+  await page.getByLabel("Calories (kcal)").first().fill("700");
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/\/meals\/[0-9a-f-]+$/);
+  await expect(items).toContainText("1,5 × 1 tô");
+  await expect(page.locator("main")).toContainText("700");
+});
+
 test("món theo khẩu phần có gram: chọn đơn vị gram; sửa và xóa món không đổi bữa đã ghi", async ({ page }) => {
   await createFood(page, pho);
   await page.getByRole("button", { name: /Phở bò/ }).click();

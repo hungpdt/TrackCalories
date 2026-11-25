@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { basisQuantityFor, basisUnit, portionFactor } from "@/lib/nutrition/portion";
 import { requireUser } from "@/lib/supabase/server";
+import { eatenAt } from "@/lib/dates/eaten-at";
 import { foodInputSchema, logFoodSchema, type FoodInput } from "./types";
 import { toLibraryFood } from "./queries";
 
@@ -81,7 +82,7 @@ export async function logFood(input: unknown): Promise<LogFoodResult> {
 
   const { error } = await supabase.rpc("save_meal", {
     p_request_id: requestId,
-    p_meal: { meal_date: mealDate, meal_type: mealType },
+    p_meal: { meal_date: mealDate, meal_type: mealType, eaten_at: await eatenAt(supabase, mealDate, mealType) },
     p_items: [{
       food_id: food.id, name: food.name,
       basis_type: food.basisType, basis_quantity: food.basisQuantity, basis_unit: basisUnit[food.basisType],

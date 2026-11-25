@@ -79,6 +79,9 @@ export const saveMealSchema = z.object({
     source: z.enum(["ai_estimate", "manual"]),
     assumptions: z.array(z.string().max(200)).max(10),
     saveToLibrary: z.boolean().optional(),
+    /** Chỉ khi sửa bữa: id món gốc trong bữa đó và cờ "không đổi gì" để server giữ nguyên snapshot. */
+    originItemId: z.uuid().optional(),
+    unchanged: z.boolean().optional(),
   })).min(1).max(20),
 });
 

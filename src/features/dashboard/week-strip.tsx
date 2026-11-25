@@ -48,6 +48,8 @@ export function WeekStrip({ date, today, loggedDays }: { date: string; today: st
 
   function onPointerDown(event: PointerEvent) {
     if (animating) return;
+    // Cờ chặn click chỉ dành cho lần kéo vừa xong; chạm mới luôn bắt đầu sạch (trên cảm ứng, kéo có khi không sinh click).
+    suppressClick.current = false;
     drag.current = { x: event.clientX, y: event.clientY, horizontal: null };
   }
   function onPointerMove(event: PointerEvent) {

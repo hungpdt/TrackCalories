@@ -2,6 +2,7 @@ import "server-only";
 import { todayIn } from "@/lib/dates/today";
 import { requireUser } from "@/lib/supabase/server";
 import type { DayMeal } from "./types";
+import { amountLabel } from "./amount";
 
 // Kiểm tra vòng: "2026-02-30" vẫn parse được trong JS nhưng không khớp lại chuỗi gốc.
 export function isCalendarDate(value: string | undefined): value is string {
@@ -27,11 +28,11 @@ export async function resolveDay(requested: string | undefined) {
 
 /** Bữa ăn của một ngày, tổng tính từ total_* của từng item snapshot (không cache tổng). */
 type MealRow = {
-  id: string; meal_type: string; eaten_at: string; photo_path: string | null; revision: number;
+  id: string; meal_type: string; eaten_at: string; updated_at: string; photo_path: string | null; revision: number;
   meal_items: { id: string; position: number; name_snapshot: string; consumed_quantity: number; consumed_unit: string; serving_label_snapshot: string | null;
     total_kcal: number; total_protein_g: number; total_carbs_g: number; total_fat_g: number; source_snapshot: string }[];
 };
-const mealSelect = "id, meal_type, eaten_at, photo_path, revision, meal_items(id, position, name_snapshot, consumed_quantity, consumed_unit, serving_label_snapshot, total_kcal, total_protein_g, total_carbs_g, total_fat_g, source_snapshot)";
+const mealSelect = "id, meal_type, eaten_at, updated_at, photo_path, revision, meal_items(id, position, name_snapshot, consumed_quantity, consumed_unit, serving_label_snapshot, total_kcal, total_protein_g, total_carbs_g, total_fat_g, source_snapshot)";
 
 function toDayMeals(rows: MealRow[], timeZone: string): DayMeal[] {
   const clock = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -39,7 +40,7 @@ function toDayMeals(rows: MealRow[], timeZone: string): DayMeal[] {
     const items = [...meal.meal_items].sort((x, y) => x.position - y.position).map(item => ({
       id: item.id,
       name: item.name_snapshot,
-      amount: item.consumed_unit === "g" ? `${Number(item.consumed_quantity)} g` : item.serving_label_snapshot ?? `${Number(item.consumed_quantity)} phần`,
+      amount: amountLabel(Number(item.consumed_quantity), item.consumed_unit, item.serving_label_snapshot),
       kcal: Number(item.total_kcal), protein: Number(item.total_protein_g), carbs: Number(item.total_carbs_g), fat: Number(item.total_fat_g),
       aiEstimate: item.source_snapshot === "ai_estimate",
       grams: item.consumed_unit === "g" ? Number(item.consumed_quantity) : null,
@@ -52,7 +53,8 @@ function toDayMeals(rows: MealRow[], timeZone: string): DayMeal[] {
       id: meal.id, mealType: meal.meal_type as DayMeal["mealType"], items, totals,
       time: clock.format(new Date(meal.eaten_at)),
       // Ảnh qua route của app (điện thoại trong LAN không tới được Supabase local).
-      photoUrl: meal.photo_path ? `/api/meals/${meal.id}/photo` : null,
+      // ?v= đổi khi bữa được cập nhật (kể cả thay ảnh) để không hiện ảnh cũ từ cache.
+      photoUrl: meal.photo_path ? `/api/meals/${meal.id}/photo?v=${Date.parse(meal.updated_at)}` : null,
     };
   });
 }
@@ -81,11 +83,11 @@ export async function getMealsOn(date: string): Promise<DayMeal[]> {
   return toDayMeals((data ?? []) as unknown as MealRow[], await profileTimezone());
 }
 
-/** Tổng kcal từng ngày trong khoảng (để thanh tuần đánh dấu ngày đã ghi). */
+/** Các ngày có ghi bữa trong khoảng (để thanh tuần đánh dấu ngày đã ghi). Gom trong SQL: một dòng/ngày. */
 export async function getLoggedDays(from: string, to: string): Promise<string[]> {
   const { supabase } = await requireUser();
-  const { data } = await supabase.from("meals").select("meal_date").gte("meal_date", from).lte("meal_date", to);
-  return [...new Set((data ?? []).map(row => row.meal_date))];
+  const { data } = await supabase.rpc("daily_totals", { p_from: from, p_to: to });
+  return (data ?? []).map(row => row.meal_date);
 }
 
 export async function getLatestWeight(onOrBefore: string) {
@@ -97,12 +99,10 @@ export async function getLatestWeight(onOrBefore: string) {
 
 /** Số ngày liên tiếp có ghi bữa, tính đến hôm nay (hôm nay chưa ghi thì tính đến hôm qua). */
 export async function getStreak(): Promise<{ days: number; today: boolean }> {
-  const { supabase } = await requireUser();
   const today = todayIn(await profileTimezone());
   const from = new Date(`${today}T00:00:00Z`);
   from.setUTCDate(from.getUTCDate() - 400);
-  const { data } = await supabase.from("meals").select("meal_date").gte("meal_date", from.toISOString().slice(0, 10)).lte("meal_date", today);
-  const logged = new Set((data ?? []).map(row => row.meal_date));
+  const logged = new Set(await getLoggedDays(from.toISOString().slice(0, 10), today));
   const cursor = new Date(`${today}T00:00:00Z`);
   const loggedToday = logged.has(today);
   if (!loggedToday) cursor.setUTCDate(cursor.getUTCDate() - 1);

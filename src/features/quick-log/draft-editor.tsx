@@ -20,7 +20,14 @@ export type EditorItem = {
   saveToLibrary: boolean;
   /** Gram và dinh dưỡng tại lần tính gần nhất, để tính lại theo tỉ lệ khi người dùng đổi gram. */
   basis: { grams: number | null } & Values;
+  /** Khi sửa bữa đã ghi: món gốc và "chữ ký" lúc mở; món không đổi được lưu lại nguyên snapshot (giữ food_id, đơn vị, giả định). */
+  origin?: { itemId: string; signature: string };
 };
+
+/** Các ô người dùng sửa được; so sánh để biết món có thay đổi không. */
+export function editSignature(item: Pick<EditorItem, "name" | "grams" | "portionNote" | "kcal" | "protein" | "carbs" | "fat">) {
+  return JSON.stringify([item.name.trim(), item.grams.trim(), item.portionNote.trim(), item.kcal.trim(), item.protein.trim(), item.carbs.trim(), item.fat.trim()]);
+}
 
 const show = (value: number | null) => value === null ? "" : String(value).replace(".", ",");
 const num = (value: string) => value.trim() ? parseDecimal(value) : null;
@@ -116,6 +123,7 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
         name: item.name.trim(), grams: num(item.grams), portionNote: item.portionNote.trim() || null,
         kcal: num(item.kcal)!, protein_g: num(item.protein)!, carbs_g: num(item.carbs)!, fat_g: num(item.fat)!,
         source: item.source, assumptions: item.assumptions, saveToLibrary: item.saveToLibrary,
+        ...(item.origin ? { originItemId: item.origin.itemId, unchanged: editSignature(item) === item.origin.signature } : {}),
       })),
     };
     // Cùng nội dung → cùng request_id (retry không tạo trùng); nội dung đổi → request mới.

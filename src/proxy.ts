@@ -35,7 +35,8 @@ export async function proxy(request: NextRequest) {
   };
   // API tự trả 401 JSON; chỉ chuyển hướng trang.
   if (!signedIn && !isAuthPage && !pathname.startsWith("/api/")) return redirectTo("/login");
-  if (signedIn && isAuthPage) return redirectTo("/");
+  // /auth/confirm phải chạy cả khi đã đăng nhập (đổi email, khôi phục mật khẩu).
+  if (signedIn && isAuthPage && !pathname.startsWith("/auth/confirm")) return redirectTo("/");
   return response;
 }
 

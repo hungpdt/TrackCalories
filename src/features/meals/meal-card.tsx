@@ -41,6 +41,8 @@ export function MealCard({ meal }: { meal: DayMeal }) {
 
   function onPointerDown(event: PointerEvent) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    // Chạm mới luôn bắt đầu sạch; cờ chỉ chặn click ngay sau lần quẹt/đóng vừa xong.
+    suppressClick.current = false;
     drag.current = { x: event.clientX, y: event.clientY, base: offset, moved: false, horizontal: null };
   }
   function onPointerMove(event: PointerEvent) {

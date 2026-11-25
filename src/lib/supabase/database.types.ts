@@ -156,6 +156,11 @@ isOneToOne: false
             "consume_ai_quota":
 { Args: { "p_daily_limit": number }; Returns: number
                            },
+"daily_totals":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "carbs_g": number,"fat_g": number,"kcal": number,"meal_date": string,"protein_g": number
+            }[]
+                           },
 "save_meal":
 { Args: { "p_expected_revision"?: number,"p_items": Json,"p_meal": Json,"p_meal_id"?: string,"p_request_id": string }; Returns: Json
                            },

@@ -12,7 +12,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   const params = await searchParams;
   const { date, today } = await resolveDay(params.date);
   const [{ draft, targets }, dayTargets, meals, loggedDays] = await Promise.all([
-    getProfileAndGoal(), getTargetsOn(date), getMealsOn(date), getLoggedDays(shiftDate(date < today ? date : today, -180), today),
+    getProfileAndGoal(), getTargetsOn(date), getMealsOn(date), getLoggedDays(shiftDate(date, -180), [shiftDate(date, 180), today].sort()[0]),
   ]);
   const notice = params.saved === "1"
     ? ["Đã lưu bữa ăn.", params.library === "failed" && "Chưa thêm được món vào kho.", params.photo === "failed" && "Chưa lưu được ảnh."].filter(Boolean).join(" ")
