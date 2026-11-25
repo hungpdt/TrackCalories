@@ -54,10 +54,10 @@ Chạy trên PC: tắt PC **không mất dữ liệu** (lưu trong Docker volume
 
 Điều kiện đầu vào: agent review độc lập (code + bảo mật) cho `07b6d9f..feature/food-library` đã xong và các lỗi blocker/nên sửa đã sửa. Ước lượng: 1 phiên code (bước 1) + ~1 giờ thao tác cùng người dùng (bước 2–5).
 
-### Bước 0 — Đưa code vào main (xin phép từng lệnh)
+### Bước 0 — Đưa code vào main (xin phép từng lệnh) — review độc lập xong, đã sửa (`9eefaaf`); chờ phép merge/push
 - Lịch sử đang thẳng: `main` → auth-database → ai-quick-log → food-library. Merge bằng `git merge --ff-only feature/food-library` trên `main` (không tạo merge commit, không force-push), chạy lại lint/typecheck/unit/db trên main, rồi `git push origin main` và push 3 nhánh feature để lưu vết.
 
-### Bước 1 — Code chuẩn bị (nhánh mới `feature/cloud-deploy` từ main)
+### Bước 1 — Code chuẩn bị (nhánh `feature/cloud-deploy`) — ĐÃ XONG 25/11/2026 (`18de68d`)
 1. **Sao lưu `npm run backup`** (`scripts/backup.mjs`): đăng nhập bằng email/mật khẩu của chính người dùng (gõ trong terminal, không lưu), dùng URL + publishable key từ `.env.production.local` (gitignored). Xuất mọi bảng của người dùng (profiles, goals, meals, meal_items, foods, weight_logs) ra `backups/<ngày>/data.json` và tải ảnh `meal-photos` về `backups/<ngày>/photos/`. Không dùng service-role key. Thêm `backups/` vào `.gitignore`. Kèm `npm run restore` nhập lại vào tài khoản trống (qua RLS, giữ id) — test bằng DB local: backup → xóa dữ liệu user test → restore → so khớp.
 2. **Khóa đăng ký**: biến `SIGNUP_ENABLED` (server). Khi `false`: ẩn nút/form Đăng ký và server action đăng ký trả lỗi. Lớp chặn thật vẫn là tắt "Allow new users to sign up" trên Supabase (bước 5); biến này chỉ để giao diện không mời người lạ.
 3. **Kiểm tra env khi chạy production**: thiếu `OPENAI_API_KEY` mà `AI_PROVIDER` không phải `mock` → API AI trả lỗi rõ ràng "chưa cấu hình", không crash; chặn `AI_PROVIDER=mock` trên production.
