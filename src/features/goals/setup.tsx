@@ -1,4 +1,5 @@
 "use client";
+import { useAiJobs } from "@/features/quick-log/ai-jobs";
 
 import { useState, useSyncExternalStore, useTransition, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
@@ -177,6 +178,7 @@ function SetupForm({ initial, onCancel, onDone }: {
 type DashboardData = Omit<ComponentProps<typeof Dashboard>, "targets"> & { targets: Nutrients | null };
 
 export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | null; targets: Nutrients | null; dashboard: DashboardData }) {
+  const pendingJobs = useAiJobs().jobs.filter(job => job.date === dashboard.date).length;
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -232,7 +234,8 @@ export function FirstRun({ saved, targets, dashboard }: { saved: ProfileDraft | 
   </>;
 
   // Chưa có mục tiêu nhưng đã ghi bữa (ví dụ ghi trước khi thiết lập): vẫn hiện các bữa, form thiết lập ở dưới.
-  const mealsFirst = !saved && !preview && (dashboard.meals.length > 0 || dashboard.date !== dashboard.today);
+  // Chưa có mục tiêu nhưng đã có bữa ăn, đang xem ngày khác, hoặc có bản ghi AI đang chạy/chờ kiểm tra: hiện Dashboard trước.
+  const mealsFirst = !saved && !preview && (dashboard.meals.length > 0 || dashboard.date !== dashboard.today || pendingJobs > 0);
   return <>{mealsFirst && <Dashboard {...dashboard} />}<div className="setup-page">
     <header className="setup-heading">
       <h1>{profile ? "Mục tiêu dinh dưỡng của bạn" : "Thiết lập mục tiêu của bạn"}</h1>

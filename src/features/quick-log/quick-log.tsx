@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BookOpen, Camera, ImagePlus, Mic, MicOff, Pencil, ScanLine, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { PageHeading } from "@/components/ui/shared";
 import { uuid } from "@/lib/uuid";
-import type { AiDraft, SaveMealInput } from "@/lib/ai/draft";
-import { DraftEditor, emptyItem, itemFromAi, type EditorItem } from "./draft-editor";
+import type { SaveMealInput } from "@/lib/ai/draft";
+import { DraftEditor, emptyItem, type EditorItem } from "./draft-editor";
+import { useAiJobs } from "./ai-jobs";
 import { compressImage } from "./image";
 import { takePendingPhotos } from "./pending-photos";
 import { useSpeech } from "./use-speech";
 
 const MAX_IMAGES = 4;
 const MAX_NOTE = 1000;
-// Server chờ OpenAI tối đa ~50 s; client đợi thêm biên mạng rồi tự hủy.
-const CLIENT_TIMEOUT_MS = 75_000;
 type Photo = { id: string; blob: Blob; url: string };
 type Stage = { kind: "capture" } | { kind: "editor"; items: EditorItem[]; warnings: string[]; fromAi: boolean };
 
@@ -23,9 +23,9 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  const router = useRouter();
+  const jobs = useAiJobs();
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const noteInput = useRef<HTMLTextAreaElement>(null);
@@ -79,53 +79,23 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
     });
   }
 
+  /** Gửi cho AI chạy nền rồi về trang chủ: thẻ "Đang phân tích" hiện ở đó, người dùng làm việc khác trong lúc chờ. */
   async function analyze() {
     if (busy) return;
     if (!photos.length && !note.trim()) { setError("Thêm ít nhất một ảnh hoặc ghi chú."); return; }
     speech.stop();
     setBusy(true);
     setError("");
-    setInfo("");
-    const form = new FormData();
-    form.append("note", note.trim());
-    photos.forEach((photo, index) => form.append("images", photo.blob, `anh-${index + 1}.jpg`));
-    // Đếm giây để người dùng biết vẫn đang chạy; tự hủy sau CLIENT_TIMEOUT để không quay mãi.
-    const startedAt = Date.now();
-    setElapsed(0);
-    const ticker = window.setInterval(() => setElapsed(Math.round((Date.now() - startedAt) / 1000)), 1000);
-    const controller = new AbortController();
-    const abortTimer = window.setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
-    try {
-      const response = await fetch("/api/ai/quick-log", { method: "POST", body: form, signal: controller.signal });
-      const fallback = response.status === 401 ? "Phiên đăng nhập đã hết. Tải lại trang để đăng nhập."
-        : response.status >= 500 ? "AI phản hồi quá lâu hoặc máy chủ đang lỗi. Thử lại hoặc nhập thủ công; ảnh và ghi chú vẫn được giữ."
-        : "Chưa phân tích được. Thử lại hoặc nhập thủ công.";
-      const body: { draft?: AiDraft; remaining?: number; error?: string } = await response.json().catch(() => ({ error: fallback }));
-      if (!response.ok || !body.draft) { setError(body.error ?? "Chưa phân tích được. Thử lại hoặc nhập thủ công."); return; }
-      if (!body.draft.items.length) {
-        setError(body.draft.warnings[0] ?? "AI chưa nhận ra món nào. Thêm ghi chú rõ hơn hoặc nhập thủ công.");
-        return;
-      }
-      if (typeof body.remaining === "number") setInfo(`Còn ${body.remaining} lượt AI hôm nay.`);
-      speech.stop();
-      setStage({ kind: "editor", items: body.draft.items.map(itemFromAi), warnings: body.draft.warnings, fromAi: true });
-    } catch {
-      setError(controller.signal.aborted
-        ? `AI chưa trả lời sau ${CLIENT_TIMEOUT_MS / 1000} giây. Ảnh và ghi chú vẫn được giữ; thử lại hoặc nhập thủ công.`
-        : "Mất kết nối. Ảnh và ghi chú vẫn được giữ; thử lại hoặc nhập thủ công.");
-    } finally {
-      window.clearInterval(ticker);
-      window.clearTimeout(abortTimer);
-      setBusy(false);
-    }
+    await jobs.start({ photos: photos.map(photo => photo.blob), note: note.trim(), date: today, mealType: defaultMealType });
+    router.push(`/?date=${today}`);
   }
 
   const heading = <PageHeading eyebrow="GHI NHANH" title="Ghi một bữa ăn" description="Chụp ảnh, nói hoặc gõ thêm vài chữ. AI tạo bản nháp, bạn kiểm tra rồi lưu." />;
 
   if (stage.kind === "editor") return <>
     {heading}
-    {info && <p className="feedback" role="status">{info}</p>}
-    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} defaultMealType={defaultMealType} onCancel={() => setStage({ kind: "capture" })} photo={photos[0]?.blob ?? null} />
+    <DraftEditor initialItems={stage.items} warnings={stage.warnings} today={today} defaultMealType={defaultMealType} onCancel={() => setStage({ kind: "capture" })}
+      photo={photos[0]?.blob ?? null} persistKey={`manual-${today}`} />
   </>;
 
   return <>
@@ -156,16 +126,15 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
           aria-pressed={speech.listening} onClick={() => speech.listening ? speech.stop() : speech.start()}>
           {speech.listening ? <><MicOff size={18} /> Dừng nói</> : <><Mic size={18} /> Nói</>}
         </button>
-        <button type="button" className="button" onClick={analyze} disabled={busy}><Sparkles size={18} /> {busy ? `AI đang phân tích… ${elapsed}s` : "Tạo bản nháp"}</button>
+        <button type="button" className="button" onClick={analyze} disabled={busy}><Sparkles size={18} /> {busy ? "Đang gửi…" : "Tạo bản nháp"}</button>
       </div>
-      {busy && <p className="small muted" role="status">Thường mất 10–30 giây. Có thể để màn hình sáng và chờ; ảnh và ghi chú vẫn được giữ nếu có lỗi.</p>}
       {/* Ngay dưới nút để người dùng điện thoại thấy phản hồi khi bấm Nói. */}
       {speech.listening && <p className="small muted" role="status">Đang nghe… {speech.interim}</p>}
       {speech.error && <p className="error-message" role="alert">{speech.error}</p>}
       {!speech.error && speech.status === "insecure" && <p className="small muted speech-hint">Mở qua http nên nút Nói không dùng được; hãy dùng micro trên bàn phím điện thoại.</p>}
       {!speech.error && speech.status === "unsupported" && <p className="small muted speech-hint">Trình duyệt này chưa hỗ trợ nói thành chữ; hãy gõ hoặc dùng micro trên bàn phím.</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <p className="small muted ai-privacy">Khi bấm “Tạo bản nháp”, ảnh và ghi chú được gửi tới OpenAI để ước tính. Kết quả chỉ là bản nháp, chỉ lưu khi bạn xác nhận.</p>
+      <p className="small muted ai-privacy">Khi bấm “Tạo bản nháp”, ảnh và ghi chú được gửi tới OpenAI để ước tính. AI chạy nền (thường 10–30 giây): bạn về trang chủ, thẻ bữa ăn hiện vòng tiến độ và báo khi bản nháp sẵn sàng. Kết quả chỉ là bản nháp, chỉ lưu khi bạn xác nhận.</p>
     </section>
 
     <section className="other-methods" aria-label="Cách nhập khác">

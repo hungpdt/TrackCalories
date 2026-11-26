@@ -25,6 +25,6 @@ export function EditMeal({ meal }: { meal: DayMeal & { date: string; revision: n
     <div className="edit-meal-head"><Link href={`/meals/${meal.id}`} className="hero-button static" aria-label="Quay lại"><ArrowLeft size={20} /></Link><h1>Sửa bữa ăn</h1></div>
     <DraftEditor initialItems={items} today={meal.date} defaultMealType={meal.mealType}
       editing={{ mealId: meal.id, revision: meal.revision, date: meal.date, mealType: meal.mealType }}
-      onCancel={() => router.push(`/meals/${meal.id}`)} />
+      persistKey={`edit-${meal.id}-${meal.revision}`} onCancel={() => router.push(`/meals/${meal.id}`)} />
   </>;
 }

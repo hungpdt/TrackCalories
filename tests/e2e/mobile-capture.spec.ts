@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { makeDraft } from "./ai-draft";
 
 // Mô phỏng điện thoại mở app qua http không phải localhost (như http://192.168.x.x:3000 trong Wi-Fi):
 // trình duyệt coi là "không an toàn" (không có crypto.randomUUID, không cho micro).
@@ -60,7 +61,7 @@ test.describe("điện thoại qua http trong mạng LAN (trang không an toàn)
     await expect(page.locator(".photo-thumb")).toHaveCount(2);
     await expect(page.locator(".quick-capture [role=alert]")).toHaveCount(0);
     await page.getByLabel("Ghi chú thêm").fill("150g bún chả");
-    await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+    await makeDraft(page);
     await expect(page.getByRole("heading", { name: "Kiểm tra bản nháp" })).toBeVisible();
     await expect(page.locator(".draft-item")).toHaveCount(3);
     for (const index of [1, 2]) {
@@ -106,7 +107,7 @@ test.describe("giọng nói trên trang an toàn (localhost/HTTPS)", () => {
     await page.getByRole("button", { name: "Dừng nói" }).click();
     await expect(page.getByRole("button", { name: "Nói" })).toBeVisible();
     await page.getByLabel("Ghi chú thêm").fill("250g cơm tấm");
-    await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+    await makeDraft(page);
     await expect(page.locator(".draft-item").first().getByLabel("Tên món")).toHaveValue("cơm tấm");
   });
 
@@ -146,7 +147,7 @@ test.describe("điện thoại qua HTTPS trong mạng LAN (npm run dev:https)", 
     await page.getByRole("button", { name: "Dừng nói" }).click();
     await page.locator(".quick-capture input[type=file][capture]").setInputFiles(photo);
     await expect(page.getByRole("img", { name: "Ảnh bữa ăn 1" })).toBeVisible();
-    await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+    await makeDraft(page);
     await expect(page.locator(".draft-item")).toHaveCount(2);
     const second = page.locator(".draft-item").nth(1);
     for (const label of ["Calories (kcal)", "Protein (g)", "Carbs (g)", "Chất béo (g)"]) await second.getByLabel(label).fill("20");

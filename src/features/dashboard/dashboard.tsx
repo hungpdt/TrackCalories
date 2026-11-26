@@ -2,6 +2,8 @@
 import { Flame } from "lucide-react";
 import { AddMealLink, EmptyState } from "@/components/ui/shared";
 import { MealCard } from "@/features/meals/meal-card";
+import { useAiJobs } from "@/features/quick-log/ai-jobs";
+import { AiJobCard } from "@/features/quick-log/ai-job-card";
 import { WeekStrip } from "./week-strip";
 import { sumDay, type DayMeal } from "@/features/meals/types";
 import { formatNumber, type Nutrients } from "@/lib/format";
@@ -29,6 +31,7 @@ export function Dashboard({ targets: goal, date, today, meals, loggedDays, notic
   notice?: string;
 }) {
   const total = sumDay(meals);
+  const jobs = useAiJobs().jobs.filter(job => job.date === date);
   const remaining = goal ? goal.kcal - total.kcal : 0;
   return <div className="home">
     <h1 className="sr-only">Một ngày của bạn</h1>
@@ -57,7 +60,7 @@ export function Dashboard({ targets: goal, date, today, meals, loggedDays, notic
 
     <section className="recent" aria-labelledby="recent-title">
       <div className="section-heading"><h2 id="recent-title">{date === today ? "Hôm nay đã ghi" : "Đã ghi trong ngày"}</h2>{meals.length > 0 && <span className="muted small">Quẹt trái để xóa</span>}</div>
-      {meals.length ? <ul className="meal-cards">{meals.map(meal => <MealCard key={meal.id} meal={meal} />)}</ul>
+      {meals.length || jobs.length ? <ul className="meal-cards">{jobs.map(job => <AiJobCard key={job.id} job={job} />)}{meals.map(meal => <MealCard key={meal.id} meal={meal} />)}</ul>
         : <EmptyState title="Chưa có bữa ăn" detail="Bấm nút + để chụp ảnh hoặc ghi món đầu tiên cho ngày này." action={<AddMealLink date={date} />} />}
     </section>
   </div>;

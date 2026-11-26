@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { makeDraft } from "./ai-draft";
 
 // Cần Supabase local và AI_PROVIDER=mock (AI giả lập: 1,5 kcal/g; mỗi ảnh thêm một món thiếu dinh dưỡng).
 const home = /127\.0\.0\.1:\d+\/$/;
@@ -27,7 +28,7 @@ test("ghi nhanh bằng ảnh + ghi chú: bản nháp nhiều món, bổ sung s�
   await page.getByLabel("Ghi chú thêm").fill("200g cơm trắng, 100g ức gà");
   await page.locator(".quick-capture input[type=file][multiple]").setInputFiles(path.join(__dirname, "..", "fixtures", "meal.png"));
   await expect(page.getByRole("img", { name: "Ảnh bữa ăn 1" })).toBeVisible();
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
 
   await expect(page.getByRole("heading", { name: "Kiểm tra bản nháp" })).toBeVisible();
   await expect(page.locator(".draft-item")).toHaveCount(3);
@@ -104,7 +105,7 @@ test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", asy
 
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("400g phở bò");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
   await expect(page).toHaveURL(/saved=1/);
   await page.goto("/");
@@ -119,7 +120,7 @@ test("bữa đã lưu hiện trên Dashboard với mục tiêu của ngày", asy
 
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("2000g mỡ");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
   await expect(page).toHaveURL(/saved=1/);
   await page.goto("/");
@@ -156,13 +157,13 @@ test("API ghi nhanh từ chối request không hợp lệ và trả JSON", async
 test("mất mạng khi lưu vẫn giữ bản nháp; lưu lại không tạo bữa trùng", async ({ page }) => {
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("250g bánh mì");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await expect(page.getByText(/Còn \d+ lượt AI hôm nay/)).toBeVisible();
   await item(page, 0).getByLabel("Tên món").fill("Bánh mì thịt");
 
   // Chặn đúng một lần POST server action, sau đó cho qua.
   let blocked = false;
-  await page.route("**/add-meal", async route => {
+  await page.route("**/add-meal*", async route => {
     if (!blocked && route.request().method() === "POST" && route.request().headers()["next-action"]) { blocked = true; await route.abort(); }
     else await route.continue();
   });
@@ -178,7 +179,7 @@ test("mất mạng khi lưu vẫn giữ bản nháp; lưu lại không tạo b�
 test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồn tại không làm sập trang", async ({ page }) => {
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("100g xôi");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await item(page, 0).getByLabel("Gram ăn (tùy chọn)").fill("180");
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
   await expect(page.getByText("chọn “Tính lại” hoặc “Giữ số đã nhập”", { exact: false })).toBeVisible();
@@ -199,12 +200,25 @@ test("đổi gram phải chọn tính lại hoặc giữ số; ngày không tồ
   }
 });
 
-test("trong lúc AI chạy hiện số giây và hướng dẫn chờ, xong thì mở bản nháp", async ({ page }) => {
+test("AI chạy nền: trang chủ hiện thẻ vòng tiến độ, đi trang khác vẫn chạy và báo khi xong", async ({ page }) => {
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("[chậm] 100g xôi");
   await page.getByRole("button", { name: "Tạo bản nháp" }).click();
-  await expect(page.getByRole("button", { name: /AI đang phân tích… [12]s/ })).toBeVisible();
-  await expect(page.getByText("Thường mất 10–30 giây", { exact: false })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Kiểm tra bản nháp" })).toBeVisible({ timeout: 10_000 });
+  await expect(page).toHaveURL(/\/\?date=/);
+  const card = page.locator(".ai-job-card");
+  await expect(card).toContainText("Đang phân tích bữa ăn");
+  await expect(card.locator(".ai-job-ring b")).toHaveText(/\d+%/);
+  await page.getByRole("link", { name: "Tiến độ" }).first().click();
+  await expect(page.getByRole("status").filter({ hasText: "Bản nháp AI đã sẵn sàng" })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("link", { name: "Kiểm tra" }).click();
+  await expect(page.getByRole("heading", { name: "Kiểm tra bản nháp" })).toBeVisible();
   await expect(page.locator(".draft-item").first().getByLabel("Tên món")).toHaveValue("xôi");
+  // Tải lại trang vẫn mở được bản nháp và số đã sửa.
+  await page.locator(".draft-item").first().getByLabel("Tên món").fill("Xôi gà");
+  await page.reload();
+  await expect(page.locator(".draft-item").first().getByLabel("Tên món")).toHaveValue("Xôi gà");
+  await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
+  await expect(page).toHaveURL(/saved=1/);
+  await expect(page.locator(".ai-job-card")).toHaveCount(0);
+  await expect(page.locator(".meal-cards")).toContainText("Xôi gà");
 });

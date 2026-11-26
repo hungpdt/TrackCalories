@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Activity, Home, BookOpen, ChartLine, UserRound, Plus, Sprout, Flame } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { AddMealSheet } from "./add-meal-sheet";
+import { AiJobsProvider } from "@/features/quick-log/ai-jobs";
 // Khóa localStorage của hồ sơ G1; hồ sơ nay lưu theo tài khoản nên xóa bản cũ khỏi thiết bị.
 const legacyProfileKey = "tcgm.nutrition-profile.v1";
 // Ba tab chính (điện thoại); Kho món chỉ hiện ở thanh bên máy tính, trên điện thoại vào qua nút +.
@@ -20,7 +21,7 @@ export function AppShell({ children, email, streak }: { children: ReactNode; ema
   // Ngày đang xem ở Tổng quan/Nhật ký; bảng "+" ghi món cho đúng ngày này.
   const viewedDate = pathname === "/" && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("date") ?? "") ? searchParams.get("date") : null;
   useEffect(() => { try { localStorage.removeItem(legacyProfileKey); } catch { /* trình duyệt chặn storage */ } }, []);
-  return <div className="app-shell">
+  return <AiJobsProvider><div className="app-shell">
     <a href="#main-content" className="skip-link">Đến nội dung chính</a>
     <aside className="sidebar">
       <Link href="/" className="brand"><span className="brand-icon"><Sprout size={24} /></span><span>tcgm<span className="brand-caption">CALORIES TRACKER</span></span></Link>
@@ -39,5 +40,5 @@ export function AppShell({ children, email, streak }: { children: ReactNode; ema
       <button type="button" className="mobile-add" aria-label="Ghi bữa ăn" aria-haspopup="dialog" aria-expanded={addOpen} onClick={() => setAddOpen(true)}><Plus size={26} /></button>
     </nav>
     <AddMealSheet open={addOpen} onClose={() => setAddOpen(false)} date={viewedDate} />
-  </div>;
+  </div></AiJobsProvider>;
 }

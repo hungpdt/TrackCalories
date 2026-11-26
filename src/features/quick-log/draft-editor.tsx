@@ -70,21 +70,55 @@ function problems(item: EditorItem) {
   return list;
 }
 
-export function DraftEditor({ initialItems, today, defaultMealType, warnings = [], onCancel, photo = null, editing }: {
+type SavedDraft = { at: number; items: EditorItem[]; mealDate: string; mealType: SaveMealInput["mealType"]; attempt: { json: string; id: string } | null };
+const DRAFT_TTL_MS = 6 * 60 * 60 * 1000;
+const draftKey = (key: string) => `tcgm-draft-${key}`;
+
+/** Bản nháp đang sửa được giữ trong sessionStorage: tải lại trang (ví dụ sau khi app được cập nhật) không mất số đã nhập. */
+function readDraft(key: string | undefined): SavedDraft | null {
+  if (!key) return null;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(draftKey(key)) ?? "null") as SavedDraft | null;
+    return saved && Date.now() - saved.at < DRAFT_TTL_MS && saved.items?.length ? saved : null;
+  } catch { return null; }
+}
+function clearDraft(key: string | undefined) {
+  if (!key) return;
+  try { sessionStorage.removeItem(draftKey(key)); } catch { /* trình duyệt chặn storage */ }
+}
+
+/** Lỗi khi trang đang mở thuộc bản deploy cũ (server action không còn): cần tải lại trang. */
+function isStaleDeployment(reason: unknown) {
+  const message = reason instanceof Error ? reason.message : String(reason ?? "");
+  return /server action|failed to find|was not found on the server|deployment/i.test(message);
+}
+
+export function DraftEditor({ initialItems, today, defaultMealType, warnings = [], onCancel, photo = null, editing, persistKey, onSaved }: {
   initialItems: EditorItem[]; today: string; defaultMealType: SaveMealInput["mealType"]; warnings?: string[]; onCancel?: () => void;
   /** Ảnh đầu tiên của lần ghi nhanh; lưu làm ảnh bữa sau khi bữa đã lưu (lỗi ảnh không chặn việc lưu bữa). */
   photo?: Blob | null;
   /** Sửa bữa đã ghi: giữ id/revision, ngày và bữa ban đầu; lưu xong quay về trang chi tiết. */
   editing?: { mealId: string; revision: number; date: string; mealType: SaveMealInput["mealType"] };
+  /** Khóa lưu tạm bản nháp (sessionStorage); cùng khóa thì mở lại khôi phục số đã sửa và request_id. */
+  persistKey?: string;
+  /** Gọi sau khi bữa đã lưu thành công (trước khi chuyển trang). */
+  onSaved?: () => void;
 }) {
   const router = useRouter();
-  const [items, setItems] = useState(initialItems);
-  const [mealDate, setMealDate] = useState(editing?.date ?? today);
-  const [mealType, setMealType] = useState<SaveMealInput["mealType"]>(editing?.mealType ?? defaultMealType);
+  const [restored] = useState(() => readDraft(persistKey));
+  const [items, setItems] = useState(restored?.items ?? initialItems);
+  const [mealDate, setMealDate] = useState(restored?.mealDate ?? editing?.date ?? today);
+  const [mealType, setMealType] = useState<SaveMealInput["mealType"]>(restored?.mealType ?? editing?.mealType ?? defaultMealType);
   const [error, setError] = useState("");
+  const [stale, setStale] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [saving, startSaving] = useTransition();
-  const lastAttempt = useRef<{ json: string; id: string } | null>(null);
+  const lastAttempt = useRef<{ json: string; id: string } | null>(restored?.attempt ?? null);
+  useEffect(() => {
+    if (!persistKey) return;
+    try { sessionStorage.setItem(draftKey(persistKey), JSON.stringify({ at: Date.now(), items, mealDate, mealType, attempt: lastAttempt.current } satisfies SavedDraft)); }
+    catch { /* hết chỗ hoặc bị chặn: chỉ mất khả năng khôi phục */ }
+  }, [persistKey, items, mealDate, mealType, error]);
   const heading = useRef<HTMLHeadingElement>(null);
   // Màn đổi từ chụp ảnh sang bản nháp: đưa focus tới tiêu đề cho bàn phím/trình đọc màn hình.
   useEffect(() => { heading.current?.focus(); }, []);
@@ -131,10 +165,13 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
     if (lastAttempt.current?.json !== json) lastAttempt.current = { json, id: uuid() };
     const requestId = lastAttempt.current.id;
     setError("");
+    setStale(false);
     startSaving(async () => {
       try {
         const result = await saveMeal({ ...payload, requestId, ...(editing ? { mealId: editing.mealId, expectedRevision: editing.revision } : {}) });
         if (!result.ok) { setError(result.error); return; }
+        clearDraft(persistKey);
+        onSaved?.();
         let photoFailed = false;
         if (photo && result.mealId) {
           try {
@@ -148,9 +185,14 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
         if (editing) { router.push(`/meals/${editing.mealId}`); router.refresh(); return; }
         const notes = `${result.libraryWarning ? "&library=failed" : ""}${photoFailed ? "&photo=failed" : ""}`;
         router.push(`/?date=${result.mealDate}&saved=1${notes}`);
-      } catch {
+      } catch (reason) {
         // Mất mạng/lỗi server: giữ nguyên bản nháp; bấm lại dùng cùng request_id nên không tạo trùng.
-        setError("Mất kết nối khi lưu. Bản nháp vẫn được giữ, hãy bấm lưu lại.");
+        if (isStaleDeployment(reason)) {
+          setStale(true);
+          setError("Ứng dụng vừa được cập nhật nên trang này đã cũ. Tải lại trang rồi bấm lưu lại; bản nháp vẫn được giữ.");
+        } else {
+          setError("Mất kết nối khi lưu. Bản nháp vẫn được giữ, hãy bấm lưu lại.");
+        }
       }
     });
   }
@@ -212,8 +254,9 @@ export function DraftEditor({ initialItems, today, defaultMealType, warnings = [
       <span className="muted">P {formatNumber(totals.protein)} · C {formatNumber(totals.carbs)} · F {formatNumber(totals.fat)} g</span>
     </div>
     {error && <p className="error-message" role="alert">{error}</p>}
+    {stale && <button type="button" className="button secondary" onClick={() => window.location.reload()}>Tải lại trang</button>}
     <div className="setup-actions">
-      {onCancel && <button type="button" className="button secondary" onClick={onCancel}>Quay lại</button>}
+      {onCancel && <button type="button" className="button secondary" onClick={() => { clearDraft(persistKey); onCancel(); }}>Quay lại</button>}
       <button type="button" className="button" onClick={save} disabled={saving}><Check size={18} /> {saving ? "Đang lưu…" : "Xác nhận lưu bữa"}</button>
     </div>
   </section>;

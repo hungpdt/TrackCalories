@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { makeDraft } from "./ai-draft";
 
 // Kho món thật (database) + bảng "+" của phương án A. Số liệu là ví dụ giả lập.
 async function signUp(page: Page) {
@@ -137,7 +138,7 @@ test("món theo khẩu phần có gram: chọn đơn vị gram; sửa và xóa m
 test("tích Lưu vào kho trong bản nháp AI thì món xuất hiện trong kho, lưu lại không trùng", async ({ page }) => {
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("200g cơm tấm");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await page.getByLabel("Lưu món này vào kho để lần sau chọn nhanh").check();
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
   await expect(page).toHaveURL(/saved=1/);
@@ -148,7 +149,7 @@ test("tích Lưu vào kho trong bản nháp AI thì món xuất hiện trong kho
 
   await page.goto("/add-meal");
   await page.getByLabel("Ghi chú thêm").fill("200g cơm tấm");
-  await page.getByRole("button", { name: "Tạo bản nháp" }).click();
+  await makeDraft(page);
   await page.getByLabel("Lưu món này vào kho để lần sau chọn nhanh").check();
   await page.getByRole("button", { name: "Xác nhận lưu bữa" }).click();
   await page.goto("/foods");

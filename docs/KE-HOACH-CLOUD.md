@@ -69,7 +69,7 @@ Chạy trên PC: tắt PC **không mất dữ liệu** (lưu trong Docker volume
 - Kiểm tra lại giá/giới hạn gói Free của Supabase (database, Storage ~1 GB, tạm dừng khi không dùng) và Vercel Hobby (thời gian chạy function tối đa ≥ 60 s cho AI).
 - Tạo project Supabase vùng Singapore (tự giữ mật khẩu database); tạo tài khoản Vercel bằng GitHub.
 
-### Bước 3 — Đưa schema và cấu hình lên cloud
+### Bước 3 — Đưa schema và cấu hình lên cloud — schema ĐÃ XONG 25/11/2026 (dùng `db push --remote`); còn cấu hình Auth
 - Người dùng chạy `npx supabase link --project-ref <ref>` và `npx supabase db push` (tự gõ mật khẩu). Kiểm tra: đủ bảng, RLS bật, bucket `meal-photos` riêng tư.
 - Auth: Site URL/Redirect URL = địa chỉ Vercel; mẫu email xác nhận → `/auth/confirm?token_hash={{ .TokenHash }}&type=email`; mật khẩu tối thiểu 8.
 - Vercel: import repo `main`; người dùng tự điền `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_DAILY_LIMIT`, `SIGNUP_ENABLED=true` (tạm); không đặt `AI_PROVIDER`, `DEV_ORIGINS`.
