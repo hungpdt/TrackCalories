@@ -85,7 +85,7 @@ Chạy trên PC: tắt PC **không mất dữ liệu** (lưu trong Docker volume
 ### Rủi ro chính
 - Dữ liệu local hiện tại không tự lên cloud: bắt đầu mới; muốn giữ thì dùng `backup` (local) → `restore` (cloud) — chính là bài test thật của công cụ sao lưu.
 - Gói Free không có sao lưu tự động → phụ thuộc `npm run backup` của người dùng.
-- Chi phí OpenAI: `AI_DAILY_LIMIT` giữ nguyên; khóa đăng ký là bắt buộc trước khi chia sẻ link.
+- Chi phí OpenAI: `AI_DAILY_LIMIT` giữ nguyên; `AI_ALLOWED_EMAILS` giới hạn AI cho vài email (đổi biến thì deploy lại); khóa đăng ký là bắt buộc trước khi chia sẻ link.
 
 ## Sau cloud: tính năng tiếp theo (đề xuất, chưa lập kế hoạch chi tiết)
 1. **G6 — Quét nhãn dinh dưỡng** (MVP, PRD A04–A06): chụp nhãn → AI đọc bảng (chọn cột 100 g / khẩu phần, chuyển kJ, ô thiếu để trống) → lưu vào Kho món qua editor chung. Cần OpenAI thật để kiểm chứng.

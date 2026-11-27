@@ -2,7 +2,15 @@
 
 Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
-## Sửa E2E lỗi sẵn (Claude, 27/11/2026, nhánh `fix/weight-past-days-e2e` từ main `5b8f9d1`, CHƯA commit)
+## Giới hạn AI theo email (Claude, 27/11/2026, nhánh `feature/ai-allowlist-macros`, ĐÃ commit + merge main)
+
+- Người dùng duyệt mục 1 (chỉ vài tài khoản dùng AI) và mục 4 (tự chỉnh P/C/F). Mục 2 (thâm hụt theo tuần) đang hỏi lại; mục 3 (TDEE) đang do session khác làm ở worktree `tdee-adaptive`, nhánh `feature/tdee-adaptive`. Nhánh `fix/weight-past-days-e2e` (`4c9fb7b`, đã merge main) có sửa E2E + mở bảng cân nặng từ nút +.
+- Đã làm mục 1: `src/lib/ai/access.ts` `aiAllowedFor(email, list)` đọc `AI_ALLOWED_EMAILS` (phẩy, không phân biệt hoa thường; trống = mọi tài khoản). `api/ai/quick-log/route.ts` trả 403 khi email (từ `getClaims`) không có trong danh sách, trước khi trừ lượt. `add-meal/page.tsx` truyền `aiEnabled` cho `QuickLog`: tắt nút "Tạo bản nháp", hiện ghi chú dùng Nhập tay/Kho món. Cập nhật `.env.example`, `README.md`, `docs/KE-HOACH-CLOUD.md`. Unit `tests/unit/ai-access.test.ts`.
+- Kiểm tra: lint, typecheck, unit 55/55, build PASS. Thử thật trên `next start` (cổng 3002, AI mock): email ngoài danh sách → nút tắt + API 403; email trong danh sách (khác hoa thường) → API 200. CHƯA chạy E2E lượt này (cổng 3100 đang bị tiến trình khác dùng, có thể là session TDEE).
+- Mục 4 (macro) TẠM DỪNG: cần sửa `lib/nutrition/targets.ts`, `features/goals/setup.tsx`, `features/goals/actions.ts`, đúng các file session TDEE đang sửa chưa commit. Bản nháp migration `goals.macros_custom` + `save_profile_goal` để ngoài repo, chưa áp dụng. Thiết kế: draft thêm proteinG/carbsG/fatG ("" = tự động), `calculateTargets` dùng số người dùng khi đủ 3 ô, hiện tổng kcal từ macro và cảnh báo lệch, nút "Dùng lại gợi ý"; `macros_custom` để lần tính lại giữ số đã sửa.
+- Trên Vercel cần đặt `AI_ALLOWED_EMAILS` rồi deploy lại mới có hiệu lực.
+
+## Sửa E2E lỗi sẵn (Claude, 27/11/2026, nhánh `fix/weight-past-days-e2e`, ĐÃ commit `4c9fb7b`, merge + push main)
 
 - Người dùng đã cho phép commit/push `5b8f9d1` và merge (fast-forward) vào `main`; `main` đã push (`ab622d5..5b8f9d1`).
 - Người dùng yêu cầu: (1) lịch sử cân nặng "chỉ sửa được ngày hôm qua", muốn nhập cân nặng cho từng ngày trước hôm nay; (2) sửa các E2E lỗi.
@@ -14,7 +22,7 @@ Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 - Lần chạy đầy đủ cuối: lint, typecheck, unit 53/53, build, test:db 42/42 PASS; E2E 52 PASS / 4 FAIL / 2 skip (`quick-log:22`, `food-library:79`, `:106` desktop, `setup:129` mobile); chạy riêng 4 test này đều PASS → chập chờn do dev server khi chạy cả bộ. Đề xuất: chạy E2E trên bản build (`next start`).
 - Shell agent cần `export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"` cho `supabase`/`test:db`.
 
-## Chuyển tab nhanh hơn — staleTimes + prefetch + lịch tuần (Claude, 27/11/2026, CHƯA commit)
+## Chuyển tab nhanh hơn — staleTimes + prefetch + lịch tuần (Claude, 27/11/2026, ĐÃ commit `5b8f9d1`, merge + push main)
 
 - Nhánh worktree `claude/distracted-easley-6eab9d` tách từ `fix/slow-tab-navigation` (`d433376`). Người dùng báo vẫn trễ khi chuyển tab và khi bấm ngày ở lịch tuần. Người dùng đã duyệt: giữ staleTimes, thêm prefetch 4 tab, sửa lịch.
 - `next.config.ts`: `experimental.staleTimes = { dynamic: 30, static: 60 }` (đúng kiểu trong `node_modules/next/dist/server/config-shared.d.ts`). `dynamic` giữ trang động vừa xem 30 s; `static` là hạn của bản prefetch đầy đủ (mặc định 300 s, hạ xuống 60 s để dữ liệu sửa từ thiết bị khác không cũ lâu).

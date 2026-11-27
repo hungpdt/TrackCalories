@@ -26,6 +26,7 @@ AI "Ghi nhanh" (chỉ phía server):
 OPENAI_API_KEY=<key từ platform.openai.com>
 OPENAI_MODEL=<model hỗ trợ ảnh + structured output>
 AI_DAILY_LIMIT=30
+# AI_ALLOWED_EMAILS=ban@example.com,nguoi-than@example.com  # để trống: ai đăng nhập cũng dùng AI
 ```
 
 Chưa có key thì đặt `AI_PROVIDER=mock` để dùng AI giả lập (không gọi mạng); xóa dòng đó khi đã có key. Sau đó:
@@ -87,7 +88,7 @@ npm run backup -- --env .env.production.local
 Checklist đầy đủ: `docs/KE-HOACH-CLOUD.md`. Tóm tắt:
 
 1. Supabase: `npx supabase link --project-ref <ref>` rồi `npx supabase db push` (tạo bảng, RLS, bucket ảnh riêng tư). Auth: Site URL/Redirect URL = địa chỉ Vercel; mẫu email xác nhận trỏ `/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
-2. Vercel: biến môi trường `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_DAILY_LIMIT`, `SIGNUP_ENABLED`. Không đặt `AI_PROVIDER` (trên Vercel chế độ mock luôn bị bỏ qua) hay `DEV_ORIGINS`.
+2. Vercel: biến môi trường `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_DAILY_LIMIT`, `AI_ALLOWED_EMAILS` (danh sách email được dùng AI; để trống = mọi tài khoản), `SIGNUP_ENABLED`. Không đặt `AI_PROVIDER` (trên Vercel chế độ mock luôn bị bỏ qua) hay `DEV_ORIGINS`.
 3. Sau khi tạo tài khoản của mình: tắt "Allow new users to sign up" trong Supabase Auth và đặt `SIGNUP_ENABLED=false` (ẩn nút Tạo tài khoản), redeploy.
 4. Project Free bị tạm dừng sau khoảng một tuần không dùng: bật lại trên supabase.com, dữ liệu không mất.
 

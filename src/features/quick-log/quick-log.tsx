@@ -18,7 +18,7 @@ const MAX_NOTE = 1000;
 type Photo = { id: string; blob: Blob; url: string };
 type Stage = { kind: "capture" } | { kind: "editor"; items: EditorItem[]; warnings: string[]; fromAi: boolean };
 
-export function QuickLog({ today, defaultMealType, start }: { today: string; defaultMealType: SaveMealInput["mealType"]; start?: "manual" | "note" }) {
+export function QuickLog({ today, defaultMealType, start, aiEnabled = true }: { today: string; defaultMealType: SaveMealInput["mealType"]; start?: "manual" | "note"; aiEnabled?: boolean }) {
   const [stage, setStage] = useState<Stage>(start === "manual" ? { kind: "editor", items: [emptyItem()], warnings: [], fromAi: false } : { kind: "capture" });
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [note, setNote] = useState("");
@@ -126,7 +126,7 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
           aria-pressed={speech.listening} onClick={() => speech.listening ? speech.stop() : speech.start()}>
           {speech.listening ? <><MicOff size={18} /> Dừng nói</> : <><Mic size={18} /> Nói</>}
         </button>
-        <button type="button" className="button" onClick={analyze} disabled={busy}><Sparkles size={18} /> {busy ? "Đang gửi…" : "Tạo bản nháp"}</button>
+        <button type="button" className="button" onClick={analyze} disabled={busy || !aiEnabled}><Sparkles size={18} /> {busy ? "Đang gửi…" : "Tạo bản nháp"}</button>
       </div>
       {/* Ngay dưới nút để người dùng điện thoại thấy phản hồi khi bấm Nói. */}
       {speech.listening && <p className="small muted" role="status">Đang nghe… {speech.interim}</p>}
@@ -134,7 +134,8 @@ export function QuickLog({ today, defaultMealType, start }: { today: string; def
       {!speech.error && speech.status === "insecure" && <p className="small muted speech-hint">Mở qua http nên nút Nói không dùng được; hãy dùng micro trên bàn phím điện thoại.</p>}
       {!speech.error && speech.status === "unsupported" && <p className="small muted speech-hint">Trình duyệt này chưa hỗ trợ nói thành chữ; hãy gõ hoặc dùng micro trên bàn phím.</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <p className="small muted ai-privacy">Khi bấm “Tạo bản nháp”, ảnh và ghi chú được gửi tới OpenAI để ước tính. AI chạy nền (thường 10–30 giây): bạn về trang chủ, thẻ bữa ăn hiện vòng tiến độ và báo khi bản nháp sẵn sàng. Kết quả chỉ là bản nháp, chỉ lưu khi bạn xác nhận.</p>
+      {!aiEnabled && <p className="small muted ai-disabled" role="note">AI chưa được bật cho tài khoản này. Hãy dùng Nhập tay hoặc Kho món bên dưới.</p>}
+      {aiEnabled && <p className="small muted ai-privacy">Khi bấm “Tạo bản nháp”, ảnh và ghi chú được gửi tới OpenAI để ước tính. AI chạy nền (thường 10–30 giây): bạn về trang chủ, thẻ bữa ăn hiện vòng tiến độ và báo khi bản nháp sẵn sàng. Kết quả chỉ là bản nháp, chỉ lưu khi bạn xác nhận.</p>}
     </section>
 
     <section className="other-methods" aria-label="Cách nhập khác">

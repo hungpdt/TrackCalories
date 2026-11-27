@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { aiAllowedFor } from "@/lib/ai/access";
 import { AiError, analyzeMeal, isAiConfigured, type AiErrorCode, type MealImage } from "@/lib/ai/analyze";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,6 +21,8 @@ const aiMessages: Record<AiErrorCode, [number, string]> = {
   provider: [502, "Không kết nối được dịch vụ AI. Thử lại hoặc nhập thủ công."],
 };
 
+const AI_NOT_ALLOWED = "AI chưa được bật cho tài khoản này. Bạn vẫn có thể nhập tay hoặc chọn từ kho món.";
+
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
 
 async function hasImageSignature(file: File) {
@@ -35,6 +38,8 @@ export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims?.sub) return fail(401, "Phiên đăng nhập đã hết. Đăng nhập lại để tiếp tục.");
+  const email = typeof auth.claims.email === "string" ? auth.claims.email : null;
+  if (!aiAllowedFor(email)) return fail(403, AI_NOT_ALLOWED);
 
   let form: FormData;
   try { form = await request.formData(); } catch { return fail(400, "Dữ liệu gửi lên không hợp lệ."); }
