@@ -15,5 +15,5 @@ export default async function Page() {
   ]);
   return <WeightTracker entries={entries} today={today} baseline={baseline}
     top={<ProgressCards streak={streak} loggedDays={loggedDays} today={today} />}
-    bottom={<EnergyCards totals={totals} today={today} entries={entries} heightCm={body.heightCm} targetKg={body.targetKg} />} />;
+    bottom={<EnergyCards totals={totals} today={today} entries={entries} heightCm={body.heightCm} targetKg={body.targetKg} goalKcal={body.goalKcal} weeklyKcal={body.weeklyKcal} />} />;
 }

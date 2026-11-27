@@ -2,7 +2,8 @@ export const activities = {
   low: { label: "Ít vận động", detail: "Chủ yếu ngồi, hiếm khi tập", factor: 1.2 },
   light: { label: "Vận động nhẹ", detail: "Hay đi bộ hoặc tập nhẹ 1–3 buổi/tuần", factor: 1.375 },
   moderate: { label: "Vận động vừa", detail: "Tập 3–5 buổi/tuần hoặc công việc hay di chuyển", factor: 1.55 },
-  high: { label: "Vận động nhiều", detail: "Tập nặng thường xuyên hoặc làm việc thể lực", factor: 1.725 },
+  high: { label: "Vận động nhiều", detail: "Tập nặng 6–7 buổi/tuần", factor: 1.725 },
+  very_high: { label: "Vận động rất nhiều", detail: "Tập nặng mỗi ngày kèm công việc thể lực, hoặc tập 2 buổi/ngày", factor: 1.9 },
 };
 
 export const goals = {
@@ -87,7 +88,13 @@ export function calculateTargets(draft: ProfileDraft) {
   if (bmi < 18.5 && (draft.goal === "loss" || (draft.goal === "recomposition" && weekly > 0))) {
     return { error: "Công cụ không tính thâm hụt khi BMI dưới 18,5. Bạn có thể chọn duy trì để xem mức ước tính." };
   }
-  const resting = Math.round(10 * body.weight + 6.25 * body.height - 5 * body.age + (body.sex === "male" ? 5 : -161));
+  // Có tỉ lệ mỡ: Katch–McArdle theo khối lượng không mỡ (sát hơn với người nhiều cơ/ít mỡ);
+  // không có: Mifflin–St Jeor, công thức chung sát thực tế nhất cho người lớn.
+  const leanMass = body.fat === null ? null : body.weight * (1 - body.fat / 100);
+  const formula = leanMass === null ? "mifflin" as const : "katch" as const;
+  const resting = leanMass === null
+    ? Math.round(10 * body.weight + 6.25 * body.height - 5 * body.age + (body.sex === "male" ? 5 : -161))
+    : Math.round(370 + 21.6 * leanMass);
   const maintenance = Math.round(resting * activity.factor);
   const signedWeekly = draft.goal === "gain" ? weekly : -weekly;
   const kcal = Math.round(maintenance + signedWeekly / 7);
@@ -101,7 +108,7 @@ export function calculateTargets(draft: ProfileDraft) {
   const carbs = Math.round((kcal - protein * 4 - fat * 9) / 4);
   return {
     plan: { resting, maintenance, kcal, protein, fat, carbs, signedWeekly: signedWeekly || 0, lowIntake,
-      dailyChange: kcal - maintenance, leanMass: body.fat === null ? null : body.weight * (1 - body.fat / 100) },
+      dailyChange: kcal - maintenance, leanMass, formula },
   };
 }
 

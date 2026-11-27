@@ -2,6 +2,16 @@
 
 Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
+## TDEE: Katch–McArdle + TDEE thực tế (Claude, 27/11/2026, nhánh `feature/tdee-adaptive`, rebase lên main `8480614`, ĐÃ commit + push nhánh; CHƯA merge main, chờ áp migration lên Supabase cloud)
+
+- Người dùng hỏi công thức TDEE nào sát thực tế; đã duyệt đề xuất: (1) Mifflin–St Jeor mặc định, Katch–McArdle khi có tỉ lệ mỡ, thêm mức "Vận động rất nhiều" ×1,9; (2) thẻ "TDEE thực tế" tính từ dữ liệu, chỉ gợi ý, người dùng tự bấm áp dụng.
+- `lib/nutrition/targets.ts`: `very_high` (1,9), sửa mô tả `high`; có tỉ lệ mỡ → mức nghỉ = 370 + 21,6 × khối lượng không mỡ; `plan.formula` ("mifflin" | "katch"). `goals/setup.tsx`: giải thích theo công thức đang dùng. Migration `20261127120000_activity_very_high.sql` (đổi check `profiles_activity_level_check`), đã áp dụng ở Supabase local (`npx supabase migration up --local`). CHƯA áp dụng cloud: cần `supabase db push` trước khi deploy, nếu không chọn "rất nhiều" sẽ lỗi lưu.
+- Ảnh hưởng: người đã nhập tỉ lệ mỡ khi tính lại mục tiêu sẽ ra số khác (mục tiêu đã lưu không tự đổi). E2E `setup.spec.ts` cập nhật số theo Katch (80 kg, 20% mỡ, vừa: 2.716 duy trì, giảm 2.466, macro 128/333/69, tăng 2.916, tăng cơ giảm mỡ 2.616).
+- `lib/nutrition/adaptive.ts` (`adaptiveTdee`): cửa sổ 21 ngày trước hôm nay; cần ≥14 ngày có ghi bữa và ≥4 lần cân trải ≥10 ngày; TDEE = kcal TB ngày có ghi − hệ số góc hồi quy cân nặng × 7700. Unit test `tests/unit/adaptive.test.ts` + Katch trong `targets.test.ts` (57/57).
+- Thẻ `AdaptiveCard` trong `progress/progress.tsx` (trang Tiến độ): chưa đủ dữ liệu thì hiện tiến độ x/14 ngày, y/4 lần cân; đủ thì hiện TDEE, lượng ăn TB, kg/tuần, so với mức duy trì của mục tiêu hiện tại; lệch ≥100 kcal thì có nút "Đặt mục tiêu X kcal" → server action `applyAdaptiveTarget` (goals/actions.ts) upsert phiên bản mục tiêu từ hôm nay: kcal = TDEE + điều chỉnh tuần/7 (chặn < 1.200), giữ protein gram (≤35% kcal), béo 25%, carb phần còn lại, giữ loại mục tiêu/cân mục tiêu/mốc cân nặng. `progress/queries.ts` `getBodyGoal` trả thêm `goalKcal`, `weeklyKcal`.
+- Kiểm tra: lint, typecheck, unit 57/57, build, test:db 42/42 PASS. E2E: thêm test thẻ TDEE (chưa đủ dữ liệu); `setup.spec` + `weight.spec` 20/20. Chạy cả bộ: 44 PASS / 13 FAIL; 9 lỗi là lỗi cũ đã sửa ở nhánh `fix/weight-past-days-e2e` (chưa merge main), còn lại chập chờn của dev server (chạy riêng PASS, trừ `food-library:79` vốn chập chờn). Kiểm tay trên bản build cổng 3001 với dữ liệu mẫu local (20 ngày × 2.000 kcal, giảm 0,5 kg/tuần): thẻ ≈ 2.524 kcal; bấm áp dụng tạo mục tiêu 2.274 kcal, P/C/F 128/299/63.
+- Tiếp theo: người dùng chạy `npx supabase login` + `npx supabase link --project-ref <ref>` trên máy Mac (chưa đăng nhập CLI), rồi `npx supabase db push --remote`; sau đó merge ff vào main và push (người dùng đã cho phép theo thứ tự 27/11). E2E sau rebase: setup + weight 21/21 PASS.
+
 ## Giới hạn AI theo email (Claude, 27/11/2026, nhánh `feature/ai-allowlist-macros`, ĐÃ commit + merge main)
 
 - Người dùng duyệt mục 1 (chỉ vài tài khoản dùng AI) và mục 4 (tự chỉnh P/C/F). Mục 2 (thâm hụt theo tuần) đang hỏi lại; mục 3 (TDEE) đang do session khác làm ở worktree `tdee-adaptive`, nhánh `feature/tdee-adaptive`. Nhánh `fix/weight-past-days-e2e` (`4c9fb7b`, đã merge main) có sửa E2E + mở bảng cân nặng từ nút +.

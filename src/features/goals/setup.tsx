@@ -60,8 +60,10 @@ function Results({ draft, onEdit, onSave, saving = false }: {
     </div>
     <details>
       <summary>Cách tính và giới hạn</summary>
-      <p>Mifflin–St Jeor ước tính mức nghỉ {formatNumber(plan.resting)} kcal/ngày từ cân nặng, chiều cao, tuổi và giới tính của công thức. App nhân mức nghỉ với hệ số vận động, sau đó cộng hoặc trừ mức điều chỉnh tuần chia cho 7.</p>
-      <p>Protein dựa trên cân nặng và mục tiêu, giới hạn 35% năng lượng. Chất béo chiếm khoảng 25%, carb dùng phần năng lượng còn lại. Số gram được làm tròn. {plan.leanMass !== null && <>Khối lượng không mỡ ước tính {formatNumber(plan.leanMass)} kg từ tỉ lệ mỡ bạn nhập. </>}Tỉ lệ mỡ chỉ dùng để hiển thị thông tin cơ thể.</p>
+      <p>{plan.formula === "katch"
+        ? <>Katch–McArdle ước tính mức nghỉ {formatNumber(plan.resting)} kcal/ngày từ khối lượng không mỡ (tính từ tỉ lệ mỡ bạn nhập). Nếu tỉ lệ mỡ đo bằng cân điện tử gia đình, số này có thể lệch; để trống ô tỉ lệ mỡ để dùng Mifflin–St Jeor.</>
+        : <>Mifflin–St Jeor ước tính mức nghỉ {formatNumber(plan.resting)} kcal/ngày từ cân nặng, chiều cao, tuổi và giới tính của công thức. Nhập tỉ lệ mỡ (nếu đo đáng tin) để dùng Katch–McArdle.</>} App nhân mức nghỉ với hệ số vận động, sau đó cộng hoặc trừ mức điều chỉnh tuần chia cho 7.</p>
+      <p>Protein dựa trên cân nặng và mục tiêu, giới hạn 35% năng lượng. Chất béo chiếm khoảng 25%, carb dùng phần năng lượng còn lại. Số gram được làm tròn. {plan.leanMass !== null && <>Khối lượng không mỡ ước tính {formatNumber(plan.leanMass)} kg từ tỉ lệ mỡ bạn nhập. </>}Mọi công thức đều có thể lệch ±10%; sau 2–3 tuần ghi đều, xem “TDEE thực tế” ở trang Tiến độ.</p>
       <p>Mức nạp là điểm bắt đầu ước tính cho người lớn khỏe mạnh từ 19–78 tuổi. Công cụ không phù hợp khi mang thai, cho con bú hoặc cần chế độ ăn theo chỉ định.</p>
       <a className="text-link" href="https://pubmed.ncbi.nlm.nih.gov/2305711/">Nghiên cứu Mifflin–St Jeor</a>
     </details>

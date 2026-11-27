@@ -22,16 +22,18 @@ export async function getDailyTotals(today: string): Promise<DayTotal[]> {
 }
 
 /** Chiều cao (cho BMI) và cân nặng mục tiêu của mục tiêu đang hiệu lực. */
-export async function getBodyGoal(today: string): Promise<{ heightCm: number | null; targetKg: number | null }> {
+export async function getBodyGoal(today: string): Promise<{ heightCm: number | null; targetKg: number | null; goalKcal: number | null; weeklyKcal: number }> {
   const { supabase } = await requireUser();
   const [{ data: profile }, { data: goal }] = await Promise.all([
     supabase.from("profiles").select("height_cm").maybeSingle(),
     // Chỉ lấy mục tiêu đang hiệu lực: người dùng xóa cân mục tiêu (null) thì không quay về số của mục tiêu cũ.
-    supabase.from("goals").select("target_weight_kg").lte("effective_from", today)
+    supabase.from("goals").select("target_weight_kg, daily_kcal, weekly_adjustment_kcal").lte("effective_from", today)
       .order("effective_from", { ascending: false }).limit(1).maybeSingle(),
   ]);
   return {
     heightCm: profile?.height_cm ? Number(profile.height_cm) : null,
     targetKg: goal?.target_weight_kg ? Number(goal.target_weight_kg) : null,
+    goalKcal: goal ? Number(goal.daily_kcal) : null,
+    weeklyKcal: goal?.weekly_adjustment_kcal ?? 0,
   };
 }

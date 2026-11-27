@@ -77,18 +77,18 @@ test.describe("đã đăng nhập", () => {
     await page.getByLabel("Món bạn hay ăn").fill("Cơm gà");
     await page.getByLabel("Món bạn thích").fill("Phở bò");
     await page.getByRole("button", { name: "Tính calories và macro" }).click();
-    await expect(page.getByTestId("intake")).toHaveText("2.509");
-    await expect(page.getByText("2.759 kcal/ngày")).toBeVisible();
+    await expect(page.getByTestId("intake")).toHaveText("2.466");
+    await expect(page.getByText("2.716 kcal/ngày")).toBeVisible();
     await expect(page.getByText("1.750 kcal/tuần")).toBeVisible();
-    for (const value of ["128 g", "342 g", "70 g"]) await expect(page.getByText(value, { exact: true })).toBeVisible();
+    for (const value of ["128 g", "333 g", "69 g"]) await expect(page.getByText(value, { exact: true })).toBeVisible();
     await expect(page.getByText("Cơm gà", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await page.getByRole("button", { name: "Lưu mục tiêu" }).click();
-    await expect(page.getByText("/ 2.509")).toBeVisible();
+    await expect(page.getByText("/ 2.466")).toBeVisible();
     await page.reload();
-    await expect(page.getByTestId("intake")).toHaveText("2.509");
+    await expect(page.getByTestId("intake")).toHaveText("2.466");
     // Phương án A: thẻ mục tiêu thu gọn dưới Dashboard, bấm để mở.
-    await page.getByText("Mục tiêu dinh dưỡng của bạn · 2.509 kcal/ngày").click();
+    await page.getByText("Mục tiêu dinh dưỡng của bạn · 2.466 kcal/ngày").click();
     await page.getByRole("button", { name: "Chỉnh thông tin" }).click();
     await expect(page.getByLabel("Cân nặng (kg)")).toHaveValue("80");
   });
@@ -104,10 +104,10 @@ test.describe("đã đăng nhập", () => {
     await page.goto("/settings");
     await expect(page.getByText("Bạn chưa thiết lập mục tiêu", { exact: false })).toBeVisible();
     await saveLossGoal(page);
-    await expect(page.getByText("/ 2.509")).toBeVisible();
-    await expect(page.getByTestId("intake")).toHaveText("2.509");
+    await expect(page.getByText("/ 2.466")).toBeVisible();
+    await expect(page.getByTestId("intake")).toHaveText("2.466");
     await openSettings(page, isMobile);
-    await expect(page.getByText("2.509 kcal/ngày")).toBeVisible();
+    await expect(page.getByText("2.466 kcal/ngày")).toBeVisible();
     await expect(page.locator("main").getByText(email)).toBeVisible();
     await expect(page.locator(".demo-notice")).toHaveCount(0);
   });
@@ -120,7 +120,7 @@ test.describe("đã đăng nhập", () => {
     await page.goto("/settings");
     await expect(page).toHaveURL(/\/login$/);
     await signIn(page, email);
-    await expect(page.getByText("/ 2.509")).toBeVisible();
+    await expect(page.getByText("/ 2.466")).toBeVisible();
     await page.context().clearCookies();
     await signUp(page);
     await expect(page.getByRole("heading", { name: "Thiết lập mục tiêu của bạn" })).toBeVisible();
@@ -133,7 +133,7 @@ test.describe("đã đăng nhập", () => {
     await page.getByLabel("Món bạn hay ăn").fill("Bún tôm");
     await page.getByLabel("Món hoặc thành phần gây dị ứng").fill("Tôm");
     await page.getByRole("button", { name: "Tính calories và macro" }).click();
-    await expect(page.getByTestId("intake")).toHaveText("2.959");
+    await expect(page.getByTestId("intake")).toHaveText("2.916");
     await expect(page.getByText("Thặng dư mỗi tuần")).toBeVisible();
     await expect(page.getByText("Đã tạm ẩn gợi ý", { exact: false })).toBeVisible();
     await expect(page.getByText("Bún tôm", { exact: true })).toHaveCount(0);
@@ -144,6 +144,6 @@ test.describe("đã đăng nhập", () => {
     await page.getByRole("button", { name: "Tiếp tục" }).click();
     await expect(page.getByLabel("Món hoặc thành phần gây dị ứng")).toHaveValue("Tôm");
     await page.getByRole("button", { name: "Tính calories và macro" }).click();
-    await expect(page.getByTestId("intake")).toHaveText("2.659");
+    await expect(page.getByTestId("intake")).toHaveText("2.616");
   });
 });

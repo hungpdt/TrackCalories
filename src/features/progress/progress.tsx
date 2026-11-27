@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setTargetWeight } from "@/features/weight/actions";
+import { applyAdaptiveTarget } from "@/features/goals/actions";
+import { adaptiveTdee, ADAPTIVE_WINDOW } from "@/lib/nutrition/adaptive";
 import { looksLikeThousands, parseDecimal } from "@/lib/nutrition/targets";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Flame } from "lucide-react";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -63,8 +65,9 @@ function Change({ value, unit, neutral = 0.05, lowerIsGood = true }: { value: nu
 
 const periods = [[3, "3 ngày"], [7, "7 ngày"], [14, "14 ngày"], [30, "30 ngày"], [90, "90 ngày"], [0, "Từ đầu"]] as const;
 
-export function EnergyCards({ totals, today, entries, heightCm, targetKg }: {
+export function EnergyCards({ totals, today, entries, heightCm, targetKg, goalKcal = null, weeklyKcal = 0 }: {
   totals: DayTotal[]; today: string; entries: WeightEntry[]; heightCm: number | null; targetKg?: number | null;
+  goalKcal?: number | null; weeklyKcal?: number;
 }) {
   const latest = entries[0];
   const first = entries[entries.length - 1];
@@ -80,6 +83,7 @@ export function EnergyCards({ totals, today, entries, heightCm, targetKg }: {
         })}
       </ul>
     </section>}
+    <AdaptiveCard totals={totals} today={today} entries={entries} goalKcal={goalKcal} weeklyKcal={weeklyKcal} />
     <CaloriesCard totals={totals} today={today} />
     <EnergyChanges totals={totals} today={today} />
     {latest && heightCm && <BmiCard kg={latest.kg} heightCm={heightCm} />}
@@ -126,6 +130,46 @@ function TargetForm({ targetKg, today }: { targetKg: number | null; today: strin
     {error && <p role="alert" className="error-message">{error}</p>}
     <div className="sheet-actions"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Hủy</button><button className="button" disabled={pending}>Lưu</button></div>
   </form>;
+}
+
+/** TDEE thực tế từ lượng ăn đã ghi và xu hướng cân nặng 21 ngày gần nhất; chỉ gợi ý, người dùng tự bấm áp dụng. */
+function AdaptiveCard({ totals, today, entries, goalKcal, weeklyKcal }: {
+  totals: DayTotal[]; today: string; entries: WeightEntry[]; goalKcal: number | null; weeklyKcal: number;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState("");
+  const result = adaptiveTdee({ today, intake: totals, weights: entries });
+  const estimated = goalKcal === null ? null : Math.round(goalKcal - weeklyKcal / 7);
+  const suggested = result.ok ? Math.round(result.tdee + weeklyKcal / 7) : null;
+
+  function apply() {
+    if (!result.ok) return;
+    startTransition(async () => {
+      try {
+        const saved = await applyAdaptiveTarget({ tdee: result.tdee, today });
+        setMessage(saved.ok ? "Đã cập nhật mục tiêu từ hôm nay." : saved.error);
+        if (saved.ok) router.refresh();
+      } catch { setMessage("Mất kết nối, chưa lưu được. Thử lại."); }
+    });
+  }
+
+  return <section className="progress-card" aria-labelledby="adaptive-tdee">
+    <h2 id="adaptive-tdee">TDEE thực tế</h2>
+    {!result.ok ? <>
+      <p className="muted small">Tính từ lượng ăn bạn ghi và xu hướng cân nặng trong {ADAPTIVE_WINDOW} ngày gần nhất, sát cơ thể bạn hơn mọi công thức.</p>
+      <p className="small">Cần thêm dữ liệu: {result.loggedDays}/{result.needDays} ngày ghi bữa, {result.weighIns}/{result.needWeighIns} lần cân (cách nhau ít nhất 10 ngày).</p>
+    </> : <>
+      <p className="big-number">≈ {formatNumber(result.tdee)} <small>kcal/ngày</small></p>
+      <p className="muted small">{result.loggedDays} ngày ghi bữa, ăn trung bình {formatNumber(result.avgIntake)} kcal; cân nặng {result.kgPerWeek <= 0 ? "giảm" : "tăng"} {formatNumber(Math.abs(result.kgPerWeek))} kg/tuần ({formatDate(result.from)}–{formatDate(result.to)}).</p>
+      {estimated !== null && <p className="small">Mức duy trì trong mục tiêu hiện tại: {formatNumber(estimated)} kcal/ngày ({result.tdee - estimated >= 0 ? "+" : "−"}{formatNumber(Math.abs(result.tdee - estimated))}).</p>}
+      <p className="muted small">Ngày ghi thiếu món sẽ làm số này thấp hơn thực tế.</p>
+      {suggested !== null && goalKcal !== null && Math.abs(suggested - goalKcal) >= 100 && <div className="sheet-actions">
+        <button type="button" className="button" disabled={pending} onClick={apply}>{pending ? "Đang lưu…" : `Đặt mục tiêu ${formatNumber(suggested)} kcal`}</button>
+      </div>}
+    </>}
+    {message && <p className="small" role="status">{message}</p>}
+  </section>;
 }
 
 function CaloriesCard({ totals, today }: { totals: DayTotal[]; today: string }) {

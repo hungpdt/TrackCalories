@@ -82,6 +82,12 @@ test("điện thoại: + → Cân nặng mở thẳng bảng Ghi cân nặng, k�
   await expect(page.getByRole("dialog", { name: "Ghi cân nặng" })).toBeHidden();
 });
 
+test("thẻ TDEE thực tế báo cần thêm dữ liệu khi mới bắt đầu", async ({ page }) => {
+  await page.goto("/weight");
+  const card = page.getByRole("region", { name: "TDEE thực tế" });
+  await expect(card).toContainText("Cần thêm dữ liệu: 0/14 ngày ghi bữa, 0/4 lần cân");
+});
+
 test("từ chối cân nặng sai định dạng hoặc ngoài khoảng", async ({ page }) => {
   await page.goto("/weight");
   for (const [value, message] of [["1.200", "dấu phẩy"], ["0", "từ 20 đến 350"], ["abc", "từ 20 đến 350"], ["400", "từ 20 đến 350"]]) {

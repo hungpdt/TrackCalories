@@ -73,3 +73,11 @@ describe("calculateTargets", () => {
     expect(calculateTargets(draft({ activity: "low", weekly: "3500" })).error).toContain("quá thấp");
   });
 });
+
+describe("Katch–McArdle và mức vận động rất nhiều", () => {
+  it("có tỉ lệ mỡ thì dùng Katch–McArdle theo khối lượng không mỡ", () => {
+    const plan = calculateTargets(draft({ weight: "80", bodyFat: "20", activity: "very_high", goal: "maintain" })).plan;
+    // Khối lượng không mỡ 64 kg → 370 + 21,6 × 64 = 1752; × 1,9 = 3329.
+    expect(plan).toMatchObject({ formula: "katch", resting: 1752, maintenance: 3329 });
+  });
+});
