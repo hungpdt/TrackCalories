@@ -66,6 +66,22 @@ test("ghi 71,7 kg, tải lại vẫn còn; trùng ngày hỏi trước; sửa, x
   await expect(page.locator(".weight-list li")).toHaveCount(2);
 });
 
+test("điện thoại: + → Cân nặng mở thẳng bảng Ghi cân nặng, kể cả khi đang ở trang Tiến độ", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Nút + chỉ có trên thanh dưới của điện thoại");
+  for (const start of ["/", "/weight"]) {
+    await page.goto(start);
+    await page.getByRole("navigation", { name: "Điều hướng điện thoại" }).getByRole("button", { name: "Ghi bữa ăn" }).click();
+    await page.getByRole("dialog", { name: "Ghi bữa ăn" }).getByRole("button", { name: "Cân nặng" }).click();
+    await expect(page).toHaveURL(/\/weight$/);
+    const sheet = page.getByRole("dialog", { name: "Ghi cân nặng" });
+    await expect(sheet).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+  }
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "Ghi cân nặng" })).toBeHidden();
+});
+
 test("từ chối cân nặng sai định dạng hoặc ngoài khoảng", async ({ page }) => {
   await page.goto("/weight");
   for (const [value, message] of [["1.200", "dấu phẩy"], ["0", "từ 20 đến 350"], ["abc", "từ 20 đến 350"], ["400", "từ 20 đến 350"]]) {

@@ -2,6 +2,18 @@
 
 Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
+## Sửa E2E lỗi sẵn (Claude, 27/11/2026, nhánh `fix/weight-past-days-e2e` từ main `5b8f9d1`, CHƯA commit)
+
+- Người dùng đã cho phép commit/push `5b8f9d1` và merge (fast-forward) vào `main`; `main` đã push (`ab622d5..5b8f9d1`).
+- Người dùng yêu cầu: (1) lịch sử cân nặng "chỉ sửa được ngày hôm qua", muốn nhập cân nặng cho từng ngày trước hôm nay; (2) sửa các E2E lỗi.
+- E2E `mobile-capture` (6 test × 2 project): Next dev chặn origin lạ `tcgm.test` khi không có `DEV_ORIGINS` → JS không chạy, kẹt ở đăng ký. Sửa: `playwright.config.ts` đặt `DEV_ORIGINS: "tcgm.test"` cho webServer. 12/12 PASS.
+- E2E `food-library.spec.ts:190`/`:159`: `/history` dùng `redirect()` trong page; vì `(tracker)/loading.tsx` làm trang stream, chuyển hướng thành phía trình duyệt và đến trễ sau sự kiện load, làm hỏng bước tiếp theo. Sửa: bỏ `src/app/(tracker)/history/page.tsx`, thêm `redirects()` trong `next.config.ts` (`/history` → `/`, 307, giữ query). Đã kiểm `curl -I /history?date=2026-11-20` → `location: /?date=2026-11-20`.
+- Kết quả: lint, typecheck, unit 53/53, build, test:db 42/42 PASS. E2E (`PLAYWRIGHT_CHANNEL=chrome --workers=2`): 53 PASS / 2 FAIL / 1 skip; 2 lỗi `food-library.spec.ts:79` và `:106` desktop (kẹt chờ chuyển trang sau server action khi chạy cả bộ trên dev server), chạy riêng 4 lần mỗi test đều PASS. Nghi do dev server quá tải (có thể thêm bởi prefetch các tab sau mỗi lần revalidate); chưa xác định chắc. Hướng xử lý: chạy E2E trên bản build (`next start`) thay vì dev.
+- Cân nặng: KHÔNG phải bug (người dùng nhầm). Đã làm thử nút lùi/tới ngày và đổi ngày khi sửa số đo, người dùng yêu cầu revert → đã trả `features/weight/*`, `tests/e2e/weight.spec.ts`, CSS về như main.
+- Yêu cầu mới (đã làm): nút "+" → "Cân nặng" mở thẳng bảng Ghi cân nặng thay vì chỉ chuyển sang đầu trang Tiến độ. `add-meal-sheet.tsx` đẩy `/weight?ghi=<Date.now()>`; `WeightTracker` đọc `?ghi` (useSearchParams), mở sheet thêm (state `handledRequest`, chạy cả khi đang ở /weight) rồi `router.replace("/weight")`. E2E mới (mobile) trong `weight.spec.ts`: từ `/` và `/weight` đều mở bảng, Esc đóng, tải lại không tự mở.
+- Lần chạy đầy đủ cuối: lint, typecheck, unit 53/53, build, test:db 42/42 PASS; E2E 52 PASS / 4 FAIL / 2 skip (`quick-log:22`, `food-library:79`, `:106` desktop, `setup:129` mobile); chạy riêng 4 test này đều PASS → chập chờn do dev server khi chạy cả bộ. Đề xuất: chạy E2E trên bản build (`next start`).
+- Shell agent cần `export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"` cho `supabase`/`test:db`.
+
 ## Chuyển tab nhanh hơn — staleTimes + prefetch + lịch tuần (Claude, 27/11/2026, CHƯA commit)
 
 - Nhánh worktree `claude/distracted-easley-6eab9d` tách từ `fix/slow-tab-navigation` (`d433376`). Người dùng báo vẫn trễ khi chuyển tab và khi bấm ngày ở lịch tuần. Người dùng đã duyệt: giữ staleTimes, thêm prefetch 4 tab, sửa lịch.

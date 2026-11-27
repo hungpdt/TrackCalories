@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { EmptyState, PageHeading } from "@/components/ui/shared";
 import { Sheet } from "@/components/ui/sheet";
@@ -29,6 +29,13 @@ export function WeightTracker({ entries, today, baseline, top, bottom }: {
   const [dismissed, setDismissed] = useState(false);
   const [message, setMessage] = useState("");
   const latest = entries[0];
+  const router = useRouter();
+  const openRequest = useSearchParams().get("ghi");
+
+  // Nút "+" → Cân nặng mở thẳng bảng Ghi cân nặng (?ghi=<mã lần mở>, kể cả khi đang ở sẵn trang này), rồi bỏ tham số khỏi URL.
+  const [handledRequest, setHandledRequest] = useState<string | null>(null);
+  if (openRequest && openRequest !== handledRequest) { setHandledRequest(openRequest); setMessage(""); setSheet({ mode: "add" }); }
+  useEffect(() => { if (openRequest) router.replace("/weight", { scroll: false }); }, [openRequest, router]);
 
   // Thay đổi so với số đo gần nhất cách đây ≥ 28 ngày.
   const monthAgo = latest ? entries.find(entry => day(latest.date) - day(entry.date) >= 28) : undefined;

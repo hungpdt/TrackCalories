@@ -13,7 +13,8 @@ export default defineConfig({
       url: "http://127.0.0.1:3100",
       timeout: 60_000,
       // E2E dùng AI giả lập, không gọi OpenAI.
-      env: { AI_PROVIDER: "mock" },
+      // tcgm.test: tên miền giả của test điện thoại qua LAN (mobile-capture); Next dev chặn origin lạ nếu thiếu.
+      env: { AI_PROVIDER: "mock", DEV_ORIGINS: "tcgm.test" },
     },
     {
       // Cổng HTTPS tự ký cho test điện thoại qua HTTPS (tests/e2e/mobile-capture.spec.ts).

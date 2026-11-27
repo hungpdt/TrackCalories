@@ -13,5 +13,9 @@ const nextConfig: NextConfig = {
   // static: thời hạn của bản tải sẵn đầy đủ (Link prefetch ở thanh tab), hạ từ 300 s mặc định xuống 60 s
   // để dữ liệu sửa từ thiết bị khác không cũ quá lâu.
   experimental: { staleTimes: { dynamic: 30, static: 60 } },
+  // Nhật ký đã gộp vào Trang chủ; giữ link/bookmark cũ /history?date=… (query tự giữ nguyên).
+  // Chuyển ở đây thay vì redirect() trong page: (tracker)/loading.tsx làm trang stream nên redirect() trong page
+  // thành chuyển hướng phía trình duyệt, đến trễ sau khi trang đã "load".
+  async redirects() { return [{ source: "/history", destination: "/", permanent: false }]; },
 };
 export default nextConfig;

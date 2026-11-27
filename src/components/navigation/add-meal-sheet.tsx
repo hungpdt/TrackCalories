@@ -42,7 +42,7 @@ export function AddMealSheet({ open, onClose, date }: { open: boolean; onClose: 
       <button type="button" className="add-option" onClick={() => go("/add-meal?mode=note")}><Mic size={24} aria-hidden="true" /><span>Nói / gõ</span></button>
       <button type="button" className="add-option" onClick={() => go("/add-meal?mode=manual")}><Pencil size={24} aria-hidden="true" /><span>Nhập tay</span></button>
       <button type="button" className="add-option" onClick={() => go("/foods")}><BookOpen size={24} aria-hidden="true" /><span>Kho món</span></button>
-      <button type="button" className="add-option" onClick={() => { onClose(); router.push("/weight#ghi-can-nang"); }}><Scale size={24} aria-hidden="true" /><span>Cân nặng</span></button>
+      <button type="button" className="add-option" onClick={() => { onClose(); router.push(`/weight?ghi=${Date.now()}`); }}><Scale size={24} aria-hidden="true" /><span>Cân nặng</span></button>
     </div>
   </Sheet>;
 }
