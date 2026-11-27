@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { todayIn } from "@/lib/dates/today";
 import { requireUser } from "@/lib/supabase/server";
 import type { DayMeal } from "./types";
@@ -19,9 +20,7 @@ function mealTypeAt(timeZone: string): DayMeal["mealType"] {
 
 /** Ngày đang xem: tham số ?date hợp lệ, nếu không thì hôm nay theo múi giờ hồ sơ. */
 export async function resolveDay(requested: string | undefined) {
-  const { supabase } = await requireUser();
-  const { data } = await supabase.from("profiles").select("timezone").maybeSingle();
-  const timezone = data?.timezone ?? "Asia/Ho_Chi_Minh";
+  const timezone = await profileTimezone();
   const today = todayIn(timezone);
   return { today, timezone, defaultMealType: mealTypeAt(timezone), date: isCalendarDate(requested) ? requested : today };
 }
@@ -59,11 +58,12 @@ function toDayMeals(rows: MealRow[], timeZone: string): DayMeal[] {
   });
 }
 
-async function profileTimezone() {
+// cache(): layout, trang và nhiều query cùng request chỉ đọc múi giờ một lần.
+const profileTimezone = cache(async () => {
   const { supabase } = await requireUser();
   const { data } = await supabase.from("profiles").select("timezone").maybeSingle();
   return data?.timezone ?? "Asia/Ho_Chi_Minh";
-}
+});
 
 /** Một bữa theo id (RLS chỉ trả bữa của người đăng nhập), kèm ngày ăn. */
 export async function getMeal(id: string): Promise<(DayMeal & { date: string; revision: number }) | null> {
@@ -98,7 +98,8 @@ export async function getLatestWeight(onOrBefore: string) {
 }
 
 /** Số ngày liên tiếp có ghi bữa, tính đến hôm nay (hôm nay chưa ghi thì tính đến hôm qua). */
-export async function getStreak(): Promise<{ days: number; today: boolean }> {
+// cache(): layout (pill chuỗi ngày) và trang Tiến độ dùng chung một lần tính trong cùng request.
+export const getStreak = cache(async (): Promise<{ days: number; today: boolean }> => {
   const today = todayIn(await profileTimezone());
   const from = new Date(`${today}T00:00:00Z`);
   from.setUTCDate(from.getUTCDate() - 400);
@@ -109,4 +110,4 @@ export async function getStreak(): Promise<{ days: number; today: boolean }> {
   let days = 0;
   while (logged.has(cursor.toISOString().slice(0, 10))) { days++; cursor.setUTCDate(cursor.getUTCDate() - 1); }
   return { days, today: loggedToday };
-}
+});
