@@ -13,6 +13,8 @@ const links = [
   { href: "/weight", label: "Tiến độ", icon: ChartLine },
   { href: "/settings", label: "Hồ sơ", icon: UserRound },
 ];
+// prefetch: tải sẵn toàn bộ trang các tab chính (kể cả dữ liệu) để lần đầu bấm cũng hiện ngay;
+// bản tải sẵn giữ theo staleTimes.static trong next.config.ts, server action ghi dữ liệu sẽ xóa nó.
 const desktopLinks = [links[0], { href: "/foods", label: "Kho món ăn", icon: BookOpen }, links[1], links[2]];
 export function AppShell({ children, email, streak }: { children: ReactNode; email: string | null; streak: { days: number; today: boolean } }) {
   const pathname = usePathname();
@@ -26,7 +28,7 @@ export function AppShell({ children, email, streak }: { children: ReactNode; ema
     <aside className="sidebar">
       <Link href="/" className="brand"><span className="brand-icon"><Sprout size={24} /></span><span>tcgm<span className="brand-caption">CALORIES TRACKER</span></span></Link>
       <p className="nav-label">KHÔNG GIAN CỦA BẠN</p>
-      <nav aria-label="Điều hướng chính">{desktopLinks.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`nav-item ${pathname === href ? "active" : ""}`} aria-current={pathname === href ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>
+      <nav aria-label="Điều hướng chính">{desktopLinks.map(({ href, label, icon: Icon }) => <Link key={href} href={href} prefetch className={`nav-item ${pathname === href ? "active" : ""}`} aria-current={pathname === href ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>
       <Link className="button sidebar-add" href="/add-meal"><Plus size={20} /> Ghi bữa ăn</Link>
       <div className="sidebar-bottom"><Activity size={24} /><p>Từng bữa ăn nhỏ.<br /><strong>Một hành trình của bạn.</strong></p><span className="small">Theo dõi • Thấu hiểu • Tiến bộ</span></div>
       <Link href="/settings" className="profile"><span className="avatar" aria-hidden="true">{(email ?? "?").charAt(0).toUpperCase()}</span><div><strong>Tài khoản</strong><span className="profile-email">{email ?? "Đã đăng nhập"}</span></div></Link>
@@ -36,7 +38,7 @@ export function AppShell({ children, email, streak }: { children: ReactNode; ema
       <main id="main-content" tabIndex={-1}>{children}</main>
     </div>
     <nav className="mobile-nav" aria-label="Điều hướng điện thoại">
-      <div className="mobile-tabs">{links.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" || pathname.startsWith("/meals") : pathname.startsWith(href); return <Link key={href} href={href} aria-current={active ? "page" : undefined}><Icon size={21} /><span>{label}</span></Link>; })}</div>
+      <div className="mobile-tabs">{links.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" || pathname.startsWith("/meals") : pathname.startsWith(href); return <Link key={href} href={href} prefetch aria-current={active ? "page" : undefined}><Icon size={21} /><span>{label}</span></Link>; })}</div>
       <button type="button" className="mobile-add" aria-label="Ghi bữa ăn" aria-haspopup="dialog" aria-expanded={addOpen} onClick={() => setAddOpen(true)}><Plus size={26} /></button>
     </nav>
     <AddMealSheet open={addOpen} onClose={() => setAddOpen(false)} date={viewedDate} />

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRef, useState, type PointerEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -25,6 +25,8 @@ function mondayOf(date: string) {
 export function WeekStrip({ date, today, loggedDays }: { date: string; today: string; loggedDays: string[] }) {
   const [week, setWeek] = useState(() => mondayOf(date));
   const [shownFor, setShownFor] = useState(date);
+  // Ngày vừa chạm: tô ngay trong lúc server tải trang ngày đó, không đợi phản hồi.
+  const [picked, setPicked] = useState<string | null>(null);
   const [dx, setDx] = useState(0);
   const [animating, setAnimating] = useState(false);
   const drag = useRef<{ x: number; y: number; horizontal: boolean | null } | null>(null);
@@ -34,7 +36,8 @@ export function WeekStrip({ date, today, loggedDays }: { date: string; today: st
   const logged = new Set(loggedDays);
 
   // Đổi ngày đang xem (từ link khác) thì về tuần chứa ngày đó.
-  if (shownFor !== date) { setShownFor(date); setWeek(mondayOf(date)); }
+  if (shownFor !== date) { setShownFor(date); setWeek(mondayOf(date)); setPicked(null); }
+  const selected = picked ?? date;
 
   const canNext = week < currentWeek;
 
@@ -77,9 +80,13 @@ export function WeekStrip({ date, today, loggedDays }: { date: string; today: st
     const future = day > today;
     const content = <><span className="week-day">{day === today ? "Nay" : weekdays[new Date(`${day}T00:00:00Z`).getUTCDay()]}</span>
       <span className={`week-date${logged.has(day) ? " logged" : ""}`}>{Number(day.slice(8))}</span></>;
+    // prefetch={false}: không tải sẵn 21 ngày mỗi lần hiện thanh (mỗi ngày là một lượt render server).
     return future ? <span key={day} className="week-cell future" aria-disabled="true">{content}</span>
-      : <Link key={day} href={`/?date=${day}`} className="week-cell" draggable={false} aria-current={day === date ? "date" : undefined} aria-label={`Ngày ${day.split("-").reverse().join("/")}`}
-        onClick={event => { if (suppressClick.current) event.preventDefault(); suppressClick.current = false; }}>{content}</Link>;
+      : <Link key={day} href={`/?date=${day}`} prefetch={false} className="week-cell" draggable={false} aria-current={day === selected ? "date" : undefined} aria-label={`Ngày ${day.split("-").reverse().join("/")}`}
+        onClick={event => {
+          if (suppressClick.current) event.preventDefault(); else if (day !== date) setPicked(day);
+          suppressClick.current = false;
+        }}>{content}<DayPending /></Link>;
   });
 
   const month = new Date(`${week}T00:00:00Z`).getUTCMonth() + 1;
@@ -98,4 +105,10 @@ export function WeekStrip({ date, today, loggedDays }: { date: string; today: st
       </div>
     </div>
   </nav>;
+}
+
+/** Chấm nhấp nháy dưới ngày đang tải (useLinkStatus chỉ dùng được bên trong Link). */
+function DayPending() {
+  const { pending } = useLinkStatus();
+  return <span className={`week-pending${pending ? " on" : ""}`} aria-hidden="true" />;
 }

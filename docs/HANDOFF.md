@@ -2,6 +2,17 @@
 
 Cập nhật: 22/11/2026 (Asia/Bangkok). Agent: Claude.
 
+## Chuyển tab nhanh hơn — staleTimes + prefetch + lịch tuần (Claude, 27/11/2026, CHƯA commit)
+
+- Nhánh worktree `claude/distracted-easley-6eab9d` tách từ `fix/slow-tab-navigation` (`d433376`). Người dùng báo vẫn trễ khi chuyển tab và khi bấm ngày ở lịch tuần. Người dùng đã duyệt: giữ staleTimes, thêm prefetch 4 tab, sửa lịch.
+- `next.config.ts`: `experimental.staleTimes = { dynamic: 30, static: 60 }` (đúng kiểu trong `node_modules/next/dist/server/config-shared.d.ts`). `dynamic` giữ trang động vừa xem 30 s; `static` là hạn của bản prefetch đầy đủ (mặc định 300 s, hạ xuống 60 s để dữ liệu sửa từ thiết bị khác không cũ lâu).
+- `components/navigation/app-shell.tsx`: `prefetch` (đầy đủ) cho tab điện thoại (Trang chủ/Tiến độ/Hồ sơ) và 4 mục thanh bên máy tính (thêm Kho món). Lần đầu bấm cũng hiện ngay; mỗi lần mở app server render thêm 2–3 trang.
+- `features/dashboard/week-strip.tsx` + `globals.css`: chạm ngày tô chọn ngay (state `picked`, reset khi `date` đổi), chấm nhấp nháy `.week-pending` dùng `useLinkStatus` trong lúc tải; link ngày `prefetch={false}` (không tải sẵn 21 ngày). Thời gian server thật không đổi; nếu vẫn chậm, bước sau là tách khung/số liệu bằng Suspense.
+- Rà server action: mọi action ghi đều `revalidatePath` (bữa/ảnh/xóa bữa, `logFood`, cân nặng, hồ sơ: `"/", "layout"`; kho món: `/foods`; cân mục tiêu: `/weight`); đăng nhập/xuất đổi cookie + `redirect`. Revalidate/đổi cookie trong server action xóa toàn bộ cache router phía trình duyệt (kể cả bản prefetch), nên không cần sửa action. Pill chuỗi ngày làm mới qua layout; thẻ AI nền chỉ gọi `/api/ai/quick-log` (không ghi DB), lưu qua `saveMeal`.
+- Giới hạn chấp nhận: dữ liệu đổi từ thiết bị khác hoặc qua nửa đêm có thể cũ tối đa 30 s (trang đã xem) / 60 s (bản prefetch tab).
+- Kiểm tra đã chạy: lint, typecheck, unit 53/53, build (env giả) PASS. Docker Desktop đã cài (CLI ở `/Applications/Docker.app/Contents/Resources/bin`, chưa có trong PATH của shell agent). Đã dừng stack Supabase lạ `Hungg` (người dùng cho phép), chạy `npx supabase start` cho `tcgm`; `.env.local` của worktree trỏ Supabase local + `AI_PROVIDER=mock` (Git bỏ qua). `npm run test:db` 42/42 PASS. E2E cần `PLAYWRIGHT_CHANNEL=chrome` (máy không có Edge), `--workers=2`: bản này 44 PASS / 11 FAIL / 1 skip; bản gốc `d433376` cùng điều kiện 46 PASS / 9 FAIL / 1 skip. 9 lỗi có sẵn ở cả hai: `mobile-capture.spec.ts` (6, kẹt ở đăng ký), `food-library.spec.ts:190` (2), `food-library.spec.ts:159` mobile (chỉ bản gốc). Lỗi thêm ở bản này: `weight.spec.ts:28` (chạy lại 3 lần đều PASS), `quick-log.spec.ts:203` AI chạy nền (chạy lại 18 lần: 1 lỗi; bản gốc 12/12) — có thể dev server chậm hơn do prefetch, chưa xác định chắc.
+- Tiếp theo: điều tra các E2E lỗi sẵn (mobile-capture, food-library:190); theo dõi quick-log:203; xin phép commit/push; thử trên preview Vercel/điện thoại.
+
 ## Trạng thái và quyền
 
 - Kế hoạch đã được người dùng duyệt: “okay. sau đó hãy bắt đầu triển khai kế hoạch”. Không hỏi lại quyền code. Người dùng yêu cầu “code tiếp các tính năng”, rồi “triển khai G2b trên nhánh riêng feature/ai-quick-log”.
